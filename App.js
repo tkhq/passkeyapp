@@ -6,11 +6,14 @@ import { Passkey } from "react-native-passkey";
 import 'react-native-get-random-values';
 import "text-encoding-polyfill";
 
+const RPID = "xyz.tkhqlabs.passkeyapp"
+
 export default function App() {
   return (
     <View style={styles.container}>
       <Text>Passkey Test App</Text>
-      <Button title='Create Passkey' onPress={onPasskeyCreate}>Hello Button my old friend</Button>
+      <Button title='Create Passkey' onPress={onPasskeyCreate}>Create Passkey</Button>
+      <Button title='Sign with Passkey' onPress={onPasskeySignature}>Sign with Passkey</Button>
       <StatusBar style="auto" />
     </View>
   );
@@ -26,16 +29,18 @@ const styles = StyleSheet.create({
 });
 
 async function onPasskeyCreate() {
+  // Check that challenge generation works, and passkeys are supported
   console.log(getChallengeFromPayload("hello"));
   console.log("random challenge", getRandomChallenge());
   console.log("support", Passkey.isSupported());
+
   try {
     const result = await Passkey.register(
       {
         challenge: getChallengeFromPayload("hello"),
         rp: {
-          id: "passkeyapp.tkhqlabs.xyz",
-          name: "Passkey App (tkhqlabs.xyz)",
+          id: RPID,
+          name: "Passkey App",
         },
         user: {
           id: "new-id",
@@ -65,42 +70,24 @@ async function onPasskeyCreate() {
     );
     console.log(result);
   } catch(e) {
-    console.error(e);
+    console.error("error during passkey creation", e);
   }
 }
-// async function onPasskeyCreate() {
-//   console.log("creating stamper")
-//   const stamper = new PasskeyStamper({
-//     rpId: "localhost",
-//   });
 
-//   try {
-//     const stamp = await stamper.stamp("test payload");
-//     console.log(stamp);
-//   } catch(e) {
-//     console.error(`error during passkey creation: ${e}`);
-//     console.error(e);
-//   }
-// }
-// async function onPasskeyCreate() {
-//   console.log("creating passkey")
-//   try {
-//     const result = await CreatePasskey({
-//       rp: {
-//         id: "localhost",
-//         name: "Passkey Test App"
-//       },
-//       user: {
-//         id: "new-id",
-//         displayName: "New Passkey",
-//       }
-//     });
-//     console.log(result);
-//   } catch(e) {
-//     console.error(`error during passkey creation: ${e}`);
-//     console.error(e);
-//   }
-// }
+async function onPasskeySignature() {
+  try {
+    const result = await Passkey.authenticate({
+      rpId: RPID,
+      challenge: "test payload"
+    });
+    console.log("success", result);
+  } catch(e) {
+    console.error("error during passkey signature", e);
+  }
+}
+
+// Functions below copied from @turnkey/react-native-passkey-stamper
+// TODO delete once the mystery is solved
 
 function getChallengeFromPayload(payload) {
   const hashBuffer = sha256(payload);
