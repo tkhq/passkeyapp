@@ -16,10 +16,13 @@
     "react-native": "0.73.2",
     "react-native-get-random-values": "^1.10.0",
     "react-native-passkey": "^2.1.1",
-    "text-encoding-polyfill": "^0.6.7"
+    "text-encoding-polyfill": "^0.6.7",
+    "typescript": "^5.3.0",
+    "@types/react": "~18.2.45"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "wrangler": "^3.26.0"
   },
   "private": true
 }
