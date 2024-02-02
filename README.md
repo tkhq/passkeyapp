@@ -4,7 +4,10 @@ This repo contains a sample passkey app which creates/uses passkeys. For testing
 
 ## Running the app locally
 
-`npm run ios` will start the app using expo.
+* `npm run ios` will start the app using expo
+* `eas build -p ios --profile preview` will trigger a build through expo (online CI)
+* `npx expo prebuild --platform ios` will "prebuild" and let you build locally with xcode. Then open the project with the `PasskeyApp.xcworkspace` file
+* `eas build --platform ios --local` can be used to run a local build without xcode
 
 ## `http` folder
 
