@@ -6,7 +6,7 @@ import { Passkey } from "react-native-passkey";
 import 'react-native-get-random-values';
 import "text-encoding-polyfill";
 
-const RPID = "xyz.tkhqlabs.passkeyapp"
+const RPID = "passkeyapp.tkhqlabs.xyz"
 
 export default function App() {
   return (
@@ -33,7 +33,6 @@ async function onPasskeyCreate() {
   console.log(getChallengeFromPayload("hello"));
   console.log("random challenge", getRandomChallenge());
   console.log("support", Passkey.isSupported());
-
   try {
     const result = await Passkey.register(
       {
@@ -44,6 +43,7 @@ async function onPasskeyCreate() {
         },
         user: {
           id: "new-id",
+          name: "New Passkey",
           displayName: "New Passkey",
         },
         excludeCredentials: [],
@@ -78,7 +78,7 @@ async function onPasskeySignature() {
   try {
     const result = await Passkey.authenticate({
       rpId: RPID,
-      challenge: "test payload"
+      challenge: getChallengeFromPayload("test payload")
     });
     console.log("success", result);
   } catch(e) {
