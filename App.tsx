@@ -2,11 +2,8 @@ import { StatusBar } from 'expo-status-bar';
 import { Button, StyleSheet, Text, View } from 'react-native';
 import { PasskeyStamper, createPasskey, isSupported } from "@turnkey/react-native-passkey-stamper";
 import {TURNKEY_ORGANIZATION_ID, TURNKEY_API_PUBLIC_KEY, TURNKEY_API_PRIVATE_KEY} from "@env"
-import { ApiKeyStamper } from "@turnkey/api-key-stamper";
+import { ApiKeyStamper } from "./ApiKeyStamper";
 import { TurnkeyClient } from "@turnkey/http";
-
-// Polyfill `btoa` for API stamper to work
-import 'core-js/actual/btoa';
 
 const RPID = "passkeyapp.tkhqlabs.xyz"
 
@@ -47,8 +44,8 @@ async function onPasskeyCreate() {
       },
       user: {
         id: "new-id",
-        name: "New Passkey",
-        displayName: "New Passkey",
+        name: "Newest Passkey",
+        displayName: "Newest Passkey",
       },
     })
     console.log("passkey registration succeeded: ", authenticatorParams);
@@ -65,7 +62,7 @@ async function onPasskeySignature() {
       rpId: RPID,
     });
     const client = new TurnkeyClient({baseUrl: "https://api.turnkey.com"}, stamper);
-    const getWhoamiResult = client.getWhoami({
+    const getWhoamiResult = await client.getWhoami({
       organizationId: TURNKEY_ORGANIZATION_ID
     })
     console.log("passkey authentication succeeded: ", getWhoamiResult);
@@ -92,10 +89,26 @@ async function createSubOrganization(authenticatorParams: Awaited<ReturnType<typ
         {
           userName: "Root end-user",
           apiKeys: [],
-          authenticators: [authenticatorParams],
+          authenticators: [{
+            authenticatorName: authenticatorParams.authenticatorName,
+            challenge: authenticatorParams.challenge,
+            attestation: {
+                credentialId: base64Tobase64url(authenticatorParams.attestation.credentialId),
+                clientDataJson: base64Tobase64url(authenticatorParams.attestation.clientDataJson),
+                attestationObject: base64Tobase64url(authenticatorParams.attestation.attestationObject),
+                transports: authenticatorParams.attestation.transports
+            }
+          }],
         },
       ],
     }
   });
   return data
+}
+
+/**
+ * Simple util to convert a base64-encoded string to base64url
+ */
+function base64Tobase64url(s: string): string {
+  return s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
 }
