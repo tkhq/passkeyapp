@@ -2,6 +2,14 @@
 
 This repo contains a sample passkey app which creates/uses passkeys. It it built with Expo.
 
+The functionality is simple:
+* "Sign Up" creates a new passkey and an associated Turnkey sub-organization
+* "Sign In" gets a passkey signature and uses Turnkey's "Who am I?" endpoint to retrieve the sub-organization ID
+
+Here's a video of it in action on iOS:
+
+https://github.com/r-n-o/passkeyapp/assets/104520680/9fabf71c-d88a-4631-8bfa-14b55c72967b
+
 ## Running the app locally (iOS)
 
 ### Provisioning profile
