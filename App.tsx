@@ -14,8 +14,8 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Text>React Native Passkey App</Text>
-      <Button title='Create Passkey' onPress={onPasskeyCreate}>Create Passkey</Button>
-      <Button title='Sign with Passkey' onPress={onPasskeySignature}>Sign with Passkey</Button>
+      <Button title='Create Passkey' onPress={onPasskeyCreate}></Button>
+      <Button title='Sign with Passkey' onPress={onPasskeySignature}></Button>
       <StatusBar style="auto" />
     </View>
   );
@@ -74,7 +74,7 @@ async function onPasskeySignature() {
   }
 }
 
-async function createSubOrganization(authenticatorParams) {
+async function createSubOrganization(authenticatorParams: Awaited<ReturnType<typeof createPasskey>>) {
   const stamper = new ApiKeyStamper({
     apiPublicKey: TURNKEY_API_PUBLIC_KEY,
     apiPrivateKey: TURNKEY_API_PRIVATE_KEY,
