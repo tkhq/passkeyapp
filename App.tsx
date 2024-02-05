@@ -10,7 +10,7 @@ const RPID = "passkeyapp.tkhqlabs.xyz"
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Passkey + Turnkey</Text>
+      <Text style={styles.title}>Native Passkeys + Turnkey</Text>
       <Button title='Sign Up' onPress={onPasskeyCreate}></Button>
       <Button title='Sign In & get your ID' onPress={onPasskeySignature}></Button>
       <StatusBar style="auto" />
@@ -39,18 +39,24 @@ async function onPasskeyCreate() {
   }
 
   try {
+    const now = new Date()
+    const humanReadableDateTime = `${now.getFullYear()}-${now.getMonth()}-${now.getDay()}@${now.getHours()}h${now.getMinutes()}min`
+    console.log("creating passkey with the following datetime: ", humanReadableDateTime);
     const authenticatorParams = await createPasskey({
       // This doesn't matter much, it will be the name of the authenticator persisted on the Turnkey side.
       // Won't be visible by default.
-      authenticatorName: "New Passkey",
+      authenticatorName: "End-User Passkey",
       rp: {
         id: RPID,
         name: "Passkey App",
       },
       user: {
-        id: "new-id",
-        name: "Newest Passkey",
-        displayName: "Newest Passkey",
+        // ID isn't visible by users
+        id: String(Date.now()),
+        // ...but name and display names are
+        // We insert a human-readable date time for ease of use
+        name: `Key @ ${humanReadableDateTime}`,
+        displayName: `Key @ ${humanReadableDateTime}`,
       },
     })
     console.log("passkey registration succeeded: ", authenticatorParams);
@@ -94,7 +100,7 @@ async function createSubOrganization(authenticatorParams: Awaited<ReturnType<typ
       rootQuorumThreshold: 1,
       rootUsers: [
         {
-          userName: "Root end-user",
+          userName: "Root User",
           apiKeys: [],
           authenticators: [authenticatorParams]
         },
@@ -102,11 +108,4 @@ async function createSubOrganization(authenticatorParams: Awaited<ReturnType<typ
     }
   });
   return data
-}
-
-/**
- * Simple util to convert a base64-encoded string to base64url
- */
-function base64Tobase64url(s: string): string {
-  return s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
 }
