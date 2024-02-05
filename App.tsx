@@ -10,9 +10,9 @@ const RPID = "passkeyapp.tkhqlabs.xyz"
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>React Native Passkey App</Text>
-      <Button title='Create Passkey' onPress={onPasskeyCreate}></Button>
-      <Button title='Sign with Passkey' onPress={onPasskeySignature}></Button>
+      <Text style={styles.title}>Passkey + Turnkey</Text>
+      <Button title='Sign Up' onPress={onPasskeyCreate}></Button>
+      <Button title='Sign In & get your ID' onPress={onPasskeySignature}></Button>
       <StatusBar style="auto" />
     </View>
   );
@@ -24,6 +24,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    margin: 42,
   },
 });
 
@@ -51,6 +56,7 @@ async function onPasskeyCreate() {
     console.log("passkey registration succeeded: ", authenticatorParams);
     const response = await createSubOrganization(authenticatorParams);
     console.log("created sub-org", response)
+    alert(`Sub-org created! Your ID: ${response.activity.result.createSubOrganizationResultV4?.subOrganizationId}`);
   } catch(e) {
     console.error("error during passkey creation", e);
   }
@@ -66,6 +72,7 @@ async function onPasskeySignature() {
       organizationId: TURNKEY_ORGANIZATION_ID
     })
     console.log("passkey authentication succeeded: ", getWhoamiResult);
+    alert(`Successfully logged into sub-organization ${getWhoamiResult.organizationId}`)
   } catch(e) {
     console.error("error during passkey signature", e);
   }
@@ -89,16 +96,7 @@ async function createSubOrganization(authenticatorParams: Awaited<ReturnType<typ
         {
           userName: "Root end-user",
           apiKeys: [],
-          authenticators: [{
-            authenticatorName: authenticatorParams.authenticatorName,
-            challenge: authenticatorParams.challenge,
-            attestation: {
-                credentialId: base64Tobase64url(authenticatorParams.attestation.credentialId),
-                clientDataJson: base64Tobase64url(authenticatorParams.attestation.clientDataJson),
-                attestationObject: base64Tobase64url(authenticatorParams.attestation.attestationObject),
-                transports: authenticatorParams.attestation.transports
-            }
-          }],
+          authenticators: [authenticatorParams]
         },
       ],
     }
