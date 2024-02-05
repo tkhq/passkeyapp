@@ -4,17 +4,36 @@ This repo contains a sample passkey app which creates/uses passkeys. It it built
 
 ## Running the app locally (iOS)
 
+### Provisioning profile
+
 To trigger passkey prompts you will need a way to sign the app with a proper provisioning profile. Follow the steps outlined in https://docs.expo.dev/app-signing/app-credentials/#provisioning-profiles. TL;DR: run `eas credentials`.
 
-* `npm run ios` will start the app using expo
+### Turnkey setup
+
+Sign up for a new Turnkey organization at app.turnkey.com and create a user able to create sub-organizations (this can be done with policies):
+```json
+{
+  "effect": "EFFECT_ALLOW",
+  "consensus": "approvers.any(user, user.id == '<user id goes here>')",
+  "condition": "activity.resource == 'ORGANIZATION' && activity.action == 'CREATE'"
+}
+```
+
+Then generate a fresh API key with the `turnkey` CLI (`turnkey gen -k new-api-key-name --organization <org id>`). You can also visit https://r-n-o.github.io/p256-keygen/ and get values from there if it's simply for testing purposes.
+
+Once you have org ID, public and private API key:
+```sh
+cp .env.template .env
+```
+Then insert your values in the new `.env` file
+
+### Expo build / run
+
+* `npx expo run:ios` will start the app using expo on a simulator
+* To run with expo on your iOS device, connect the device and run `npx expo run:ios --device` (the device needs to have developer mode enabled and be connected to your Mac)
 * `eas build -p ios --profile preview` will trigger a build through expo (online CI). This gets you a QR code to install on any device covered by the provisioning profile
 * `npx expo prebuild --platform ios` will "prebuild" and let you build locally with xcode. Then open the project with the `PasskeyApp.xcworkspace` file to build with xcode (this is useful)
-* `eas build --platform ios --local --profile preview` can be used to run a local build without xcode, and will produce a `.ipa` file. The `.ipa` can be dropped on the device through xcode: "Window" -> "Devices and Simulators", then drop the app under the "Installed Apps" section.add to "installed apps" section under your device), errors with "This app cannot be installed because its integrity could not be verified".
-* To run with expo on your iOS device, connect the device and run `npx expo run:ios --device` (the device needs to have developer mode enabled and be connected to your Mac)
-
-TODO:
-- [ ] npx expo install --check
-- [ ] npm audit
+* `eas build --platform ios --local --profile preview` can be used to run a local build without xcode, and will produce a `.ipa` file. The `.ipa` can be dropped on the device through xcode: "Window" -> "Devices and Simulators", then drop the app under the "Installed Apps" section.
 
 ## `http` folder
 
@@ -49,3 +68,7 @@ Supposedly it's refreshed on install, but I have seen evidence to the contrary i
 * check `curl -v https://app-site-association.cdn-apple.com/a/v1/<your-domain>` to see what your app is "seeing". This is useful if you're trying to debug production-like setups where developer mode isn't an option
 
 Another tool that can be useful: https://branch.io/resources/aasa-validator. It's a validator for AASA files. You do not need "applinks" if all you're doing in passkeys so don't trust 100% of the things it says. But it's useful to rule out basic issues like invalid JSON or MIME type. [This article](https://towardsdev.com/swift-associated-domains-universal-links-aasa-webcredentials-c66900df7b7e) is how I found this tool.
+
+### `{"error": "Native error", "message": "The"}`
+
+This is because `react-native-passkey` isn't loaded in your package.json. I'm not sure why but requiring it from `@turnkey/react-native-passkey-stamper` isn't sufficient. You have to require it from the react-native project itself. Is there something we can do in the `@turnkey` package to remove this requirement? Please open an issue or reach out if you know of something!
