@@ -2,6 +2,11 @@ import { StatusBar } from 'expo-status-bar';
 import { Button, StyleSheet, Text, View } from 'react-native';
 import { PasskeyStamper, createPasskey, isSupported } from "@turnkey/react-native-passkey-stamper";
 import {TURNKEY_ORGANIZATION_ID, TURNKEY_API_PUBLIC_KEY, TURNKEY_API_PRIVATE_KEY} from "@env"
+import { ApiKeyStamper } from "@turnkey/api-key-stamper";
+import { TurnkeyClient } from "@turnkey/http";
+
+// Polyfill `btoa` for API stamper to work
+import 'core-js/actual/btoa';
 
 const RPID = "passkeyapp.tkhqlabs.xyz"
 
@@ -47,9 +52,8 @@ async function onPasskeyCreate() {
       },
     })
     console.log("passkey registration succeeded: ", authenticatorParams);
-    // Now let's use the authenticator params to create a new sub-organization on the Turnkey side
-    // TODO: do it.
-    // console.log(TURNKEY_API_PRIVATE_KEY, TURNKEY_API_PUBLIC_KEY, TURNKEY_ORGANIZATION_ID);
+    const response = await createSubOrganization(authenticatorParams);
+    console.log("created sub-org", response)
   } catch(e) {
     console.error("error during passkey creation", e);
   }
@@ -57,11 +61,41 @@ async function onPasskeyCreate() {
 
 async function onPasskeySignature() {
   try {
-    const result = await new PasskeyStamper({
+    const stamper = await new PasskeyStamper({
       rpId: RPID,
-    }).stamp(`{"organizationId": "${TURNKEY_ORGANIZATION_ID}"}`)
-    console.log("passkey authentication succeeded: ", result);
+    });
+    const client = new TurnkeyClient({baseUrl: "https://api.turnkey.com"}, stamper);
+    const getWhoamiResult = client.getWhoami({
+      organizationId: TURNKEY_ORGANIZATION_ID
+    })
+    console.log("passkey authentication succeeded: ", getWhoamiResult);
   } catch(e) {
     console.error("error during passkey signature", e);
   }
+}
+
+async function createSubOrganization(authenticatorParams) {
+  const stamper = new ApiKeyStamper({
+    apiPublicKey: TURNKEY_API_PUBLIC_KEY,
+    apiPrivateKey: TURNKEY_API_PRIVATE_KEY,
+  });
+  const client = new TurnkeyClient({baseUrl: "https://api.turnkey.com"}, stamper);
+
+  const data = await client.createSubOrganization({
+    type: "ACTIVITY_TYPE_CREATE_SUB_ORGANIZATION_V4",
+    timestampMs: String(Date.now()),
+    organizationId: TURNKEY_ORGANIZATION_ID,
+    parameters: {
+      subOrganizationName: `Sub-organization at ${String(Date.now())}`,
+      rootQuorumThreshold: 1,
+      rootUsers: [
+        {
+          userName: "Root end-user",
+          apiKeys: [],
+          authenticators: [authenticatorParams],
+        },
+      ],
+    }
+  });
+  return data
 }
