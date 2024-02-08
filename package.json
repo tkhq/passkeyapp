@@ -10,10 +10,9 @@
   },
   "dependencies": {
     "@noble/curves": "^1.3.0",
-    "@turnkey/api-key-stamper": "^0.3.1",
-    "@turnkey/http": "^2.6.2",
-    "@turnkey/react-native-passkey-stamper": "https://pkg.csb.dev/tkhq/sdk/commit/3374386f/@turnkey/react-native-passkey-stamper",
-    "core-js": "^3.35.1",
+    "@turnkey/api-key-stamper": "^0.4.0",
+    "@turnkey/http": "^2.7.0",
+    "@turnkey/react-native-passkey-stamper": "^0.1.0",
     "expo": "~50.0.5",
     "expo-status-bar": "~1.11.1",
     "react": "18.2.0",

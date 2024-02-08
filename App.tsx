@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Button, StyleSheet, Text, View } from 'react-native';
 import { PasskeyStamper, createPasskey, isSupported } from "@turnkey/react-native-passkey-stamper";
 import {TURNKEY_ORGANIZATION_ID, TURNKEY_API_PUBLIC_KEY, TURNKEY_API_PRIVATE_KEY} from "@env"
-import { ApiKeyStamper } from "./ApiKeyStamper";
+import { ApiKeyStamper } from "@turnkey/api-key-stamper";
 import { TurnkeyClient } from "@turnkey/http";
 
 const RPID = "passkeyapp.tkhqlabs.xyz"
