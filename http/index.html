@@ -33,8 +33,39 @@
     <input type="text" id="passkey-name" placeholder="Passkey Name" />
     <button id="create-passkey">Generate</button>
   </form>
+
+  <p>Or...list your passkeys!</p>
+  <button id="list-passkeys">Trigger passkey prompt</button>
+
   <script>
     document.addEventListener("DOMContentLoaded", function() {
+      document.getElementById("list-passkeys").addEventListener("click", async function(e) {
+        e.preventDefault();
+        const challenge = new Uint8Array(32);
+          crypto.getRandomValues(challenge);
+
+          const userId = new Uint8Array(32);
+          crypto.getRandomValues(userId);
+          try {
+            const authentication = await navigator.credentials.get({
+              publicKey: {
+                challenge: challenge,
+
+              },
+              rp: {
+                  "id": window.location.hostname,
+                  "name": "PasskeyApp on Web"
+              },
+            });
+            console.log(authentication);
+            alert("Successful passkey authentication");
+          } catch(e) {
+            const message = `error occurred during passkey authentication: ${e}`;
+            console.error(message);
+            alert(message);
+          }
+      });
+
       document.getElementById("create-passkey").addEventListener("click", async function(e) {
         e.preventDefault();
         try {
