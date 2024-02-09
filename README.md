@@ -80,3 +80,36 @@ Another tool that can be useful: https://branch.io/resources/aasa-validator. It'
 ### `{"error": "Native error", "message": "The"}`
 
 This is because `react-native-passkey` isn't loaded in your package.json. I'm not sure why but requiring it from `@turnkey/react-native-passkey-stamper` isn't sufficient. You have to require it from the react-native project itself. Is there something we can do in the `@turnkey` package to remove this requirement? Please open an issue or reach out if you know of something!
+
+### Cannot find module '[...]/code/scripts/generate-specs-cli.js`
+
+This happened for me during builds:
+
+```
+Node found at: /Users/rno/.nvm/versions/node/v18.18.2/bin/node
+node:internal/modules/cjs/loader:1080
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/rno/tkhq/code/scripts/generate-specs-cli.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1077:15)
+    at Module._load (node:internal/modules/cjs/loader:922:27)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:86:12)
+    at node:internal/main/run_main_module:23:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+```
+
+The reason is `CDPATH` was set:
+```
+echo $CDPATH
+/Users/rno/tkhq/code
+```
+
+This was hard to figure out, but someone on the internet had the same issue (https://github.com/facebook/react-native/issues/35747):
+```
+$ unset CDPATH
+$ rm -rf ios
+$ npm run ios
+```
