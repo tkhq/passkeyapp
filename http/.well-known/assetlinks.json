@@ -1,0 +1,13 @@
+[{
+    "relation": [
+        "delegate_permission/common.handle_all_urls",
+        "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "xyz.tkhqlabs.passkeyapp",
+      "sha256_cert_fingerprints": [
+        "55:16:FF:0F:77:8A:DC:5A:B3:33:1F:B3:56:02:8C:C9:C3:02:20:82:CA:13:91:CC:0C:CA:B5:3C:87:56:2B:2B"
+      ]
+    }
+}]
