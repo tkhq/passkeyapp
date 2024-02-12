@@ -58,6 +58,11 @@ async function onPasskeyCreate() {
         name: `Key @ ${humanReadableDateTime}`,
         displayName: `Key @ ${humanReadableDateTime}`,
       },
+      authenticatorSelection: {
+        residentKey: "required",
+        requireResidentKey: true,
+        userVerification: "preferred",
+      }
     })
     console.log("passkey registration succeeded: ", authenticatorParams);
     const response = await createSubOrganization(authenticatorParams);
