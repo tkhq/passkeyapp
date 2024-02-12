@@ -4,6 +4,7 @@ import { PasskeyStamper, createPasskey, isSupported } from "@turnkey/react-nativ
 import {TURNKEY_ORGANIZATION_ID, TURNKEY_API_PUBLIC_KEY, TURNKEY_API_PRIVATE_KEY} from "@env"
 import { ApiKeyStamper } from "@turnkey/api-key-stamper";
 import { TurnkeyClient } from "@turnkey/http";
+import { Buffer } from "buffer";
 
 const RPID = "passkeyapp.tkhqlabs.xyz"
 
@@ -42,6 +43,10 @@ async function onPasskeyCreate() {
     const now = new Date()
     const humanReadableDateTime = `${now.getFullYear()}-${now.getMonth()}-${now.getDay()}@${now.getHours()}h${now.getMinutes()}min`
     console.log("creating passkey with the following datetime: ", humanReadableDateTime);
+
+    // ID isn't visible by users, but needs to be random enough and valid base64 (for Android)
+    const userId = Buffer.from(String(Date.now())).toString("base64");
+
     const authenticatorParams = await createPasskey({
       // This doesn't matter much, it will be the name of the authenticator persisted on the Turnkey side.
       // Won't be visible by default.
@@ -51,8 +56,7 @@ async function onPasskeyCreate() {
         name: "Passkey App",
       },
       user: {
-        // ID isn't visible by users
-        id: String(Date.now()),
+        id: userId,
         // ...but name and display names are
         // We insert a human-readable date time for ease of use
         name: `Key @ ${humanReadableDateTime}`,
