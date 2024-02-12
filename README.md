@@ -10,13 +10,8 @@ Here's a video of it in action on iOS:
 
 https://github.com/r-n-o/passkeyapp/assets/104520680/9fabf71c-d88a-4631-8bfa-14b55c72967b
 
-## Running the app locally (iOS)
 
-### Provisioning profile
-
-To trigger passkey prompts you will need a way to sign the app with a proper provisioning profile. Follow the steps outlined in https://docs.expo.dev/app-signing/app-credentials/#provisioning-profiles. TL;DR: run `eas credentials`.
-
-### Turnkey setup
+## Turnkey setup
 
 Sign up for a new Turnkey organization at app.turnkey.com and create a user able to create sub-organizations (this can be done with policies):
 ```json
@@ -35,7 +30,13 @@ cp .env.template .env
 ```
 Then insert your values in the new `.env` file
 
-### Expo build / run
+## Running the app locally on iOS
+
+### Provisioning profile
+
+To trigger passkey prompts you will need a way to sign the app with a proper provisioning profile. Follow the steps outlined in https://docs.expo.dev/app-signing/app-credentials/#provisioning-profiles. TL;DR: run `eas credentials`.
+
+### Expo build & run recipes
 
 * `npx expo run:ios` will start the app using expo on a simulator
 * To run with expo on your iOS device, connect the device and run `npx expo run:ios --device` (the device needs to have developer mode enabled and be connected to your Mac)
@@ -43,23 +44,76 @@ Then insert your values in the new `.env` file
 * `npx expo prebuild --platform ios` will "prebuild" and let you build locally with xcode. Then open the project with the `PasskeyApp.xcworkspace` file to build with xcode (this is useful)
 * `eas build --platform ios --local --profile preview` can be used to run a local build without xcode, and will produce a `.ipa` file. The `.ipa` can be dropped on the device through xcode: "Window" -> "Devices and Simulators", then drop the app under the "Installed Apps" section.
 
-* `eas build --platform android --local --profile preview` produces an APK file. Make sure to set up a debug keystore (see [this](https://coderwall.com/p/r09hoq/android-generate-release-debug-keystores)) and log into a Google account on the simulator to test passkey functionality.
+## Running the app locally on Android
 
-To install on a real device, produce an APK file, pair your device with your Android studio over wifi (or connect your phone via USB), and run:
-```sh
-$ adb devices -l
-List of devices attached
-adb-27131JEGR40336-UUo6mJ._adb-tls-connect._tcp. device product:bluejay model:Pixel_6a device:bluejay transport_id:3
-emulator-5554          device product:sdk_gphone64_arm64 model:sdk_gphone64_arm64 device:emu64a transport_id:2
-emulator-5556          device product:sdk_gphone64_arm64 model:sdk_gphone64_arm64 device:emu64a transport_id:1
+Android requires a signed APK linked to an origin via an `assetlinks.json` file. Follow [these instructions](https://coderwall.com/p/r09hoq/android-generate-release-debug-keystores) and reference your debug keystore from you `eas.json` file:
 
-# Note the transport option: "-t3".
-# In this case I'm targeting my "Pixel_6a" device because it has "transport_id:3"
-$ adb -t3 install <path/to/apkfile>.apk
+```json
+"android":  {
+    "buildType": "apk",
+    "credentialsSource": "local"
+}
 ```
 
-More convenient option:
-* `npx expo run:android -d` will yield a dropdown of available devices!
+The above `eas.json` section references "local" credentials and will look for a "credentials.json" file:
+```
+{
+    "android": {
+      "keystore": {
+        "keystorePath": "/Users/rno/.android/debug.keystore",
+        "keystorePassword": "android",
+        "keyAlias": "androiddebugkey",
+        "keyPassword": "android"
+      }
+    }
+}
+```
+
+This is "okay" to commit to git given it's only a local debug store without any value. DO NOT DO THIS WITH ANY OTHER KEYSTORE!
+
+Finally, you need to grab your certificate's sha256 fingerprint and associate it with your domain by hosting a new file at `/.well-known/assetlinks.json`:
+```json
+[{
+    "relation": [
+        "delegate_permission/common.handle_all_urls",
+        "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "xyz.tkhqlabs.passkeyapp",
+      "sha256_cert_fingerprints": [
+        "55:16:FF:0F:77:8A:DC:5A:B3:33:1F:B3:56:02:8C:C9:C3:02:20:82:CA:13:91:CC:0C:CA:B5:3C:87:56:2B:2B",
+        "43:A8:83:EA:B5:9D:C9:03:99:CF:00:5E:17:01:14:0D:7C:22:64:22:9A:34:39:41:FC:F4:3A:FC:E1:24:03:41"
+      ]
+    }
+}]
+```
+
+You can get your certificate fingerprint with:
+```sh
+$ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+```
+
+## Expo build & run receipes
+
+* `eas build --platform android --local --profile preview` produces an APK file
+* If you are testing on a real device, enable [developer mode](https://developer.android.com/studio/debug/dev-options) and pair your device with Android Studio (see [this](https://developer.android.com/studio/run/device#wireless)) to get debug logs via [LogCat](https://developer.android.com/studio/debug/logcat). That's really helpful to figure out what's going on.
+* If you are testing on a simulator you need to log into a Google account on the simulator and configure PIN encryption to test passkey functionality. A good test to see if your simulator is set up correctly: visit https://webauthn.io from the Chrome browser and try to sign up / sign in with a passkey before testing your APK
+* Once you have your simulator or real device ready, install your APK with `adb`:
+  ```sh
+  $ adb devices -l
+  List of devices attached
+  adb-27131JEGR40336-UUo6mJ._adb-tls-connect._tcp. device product:bluejay model:Pixel_6a device:bluejay transport_id:3
+  emulator-5554          device product:sdk_gphone64_arm64 model:sdk_gphone64_arm64 device:emu64a transport_id:2
+  emulator-5556          device product:sdk_gphone64_arm64 model:sdk_gphone64_arm64 device:emu64a transport_id:1
+  
+  # Note the transport option: "-t3".
+  # In this case I'm targeting my "Pixel_6a" device because it has "transport_id:3"
+  $ adb -t3 install <path/to/apkfile>.apk
+  ```
+
+Note: a more convenient option if you're simply looking to run debug mode for your app: `npx expo run:android -d` will yield a dropdown of available devices and run your app in debug mode! But careful: **this doesn't work to test passkey functionality because the app won't be signed**.
+
 ## `http` folder
 
 In the HTTP folder you'll find a folder with what's hosted at https://passkeyapp.tkhqlabs.xyz. It contains a Cloudflare worker function to give apple-app-site-association the right MIME type.
