@@ -7,7 +7,8 @@
       "namespace": "android_app",
       "package_name": "xyz.tkhqlabs.passkeyapp",
       "sha256_cert_fingerprints": [
-        "55:16:FF:0F:77:8A:DC:5A:B3:33:1F:B3:56:02:8C:C9:C3:02:20:82:CA:13:91:CC:0C:CA:B5:3C:87:56:2B:2B"
+        "55:16:FF:0F:77:8A:DC:5A:B3:33:1F:B3:56:02:8C:C9:C3:02:20:82:CA:13:91:CC:0C:CA:B5:3C:87:56:2B:2B",
+        "43:A8:83:EA:B5:9D:C9:03:99:CF:00:5E:17:01:14:0D:7C:22:64:22:9A:34:39:41:FC:F4:3A:FC:E1:24:03:41"
       ]
     }
 }]
