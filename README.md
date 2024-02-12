@@ -43,6 +43,23 @@ Then insert your values in the new `.env` file
 * `npx expo prebuild --platform ios` will "prebuild" and let you build locally with xcode. Then open the project with the `PasskeyApp.xcworkspace` file to build with xcode (this is useful)
 * `eas build --platform ios --local --profile preview` can be used to run a local build without xcode, and will produce a `.ipa` file. The `.ipa` can be dropped on the device through xcode: "Window" -> "Devices and Simulators", then drop the app under the "Installed Apps" section.
 
+* `eas build --platform android --local --profile preview` produces an APK file. Make sure to set up a debug keystore (see [this](https://coderwall.com/p/r09hoq/android-generate-release-debug-keystores)) and log into a Google account on the simulator to test passkey functionality.
+
+To install on a real device, produce an APK file, pair your device with your Android studio over wifi (or connect your phone via USB), and run:
+```sh
+$ adb devices -l
+List of devices attached
+adb-27131JEGR40336-UUo6mJ._adb-tls-connect._tcp. device product:bluejay model:Pixel_6a device:bluejay transport_id:3
+emulator-5554          device product:sdk_gphone64_arm64 model:sdk_gphone64_arm64 device:emu64a transport_id:2
+emulator-5556          device product:sdk_gphone64_arm64 model:sdk_gphone64_arm64 device:emu64a transport_id:1
+
+# Note the transport option: "-t3".
+# In this case I'm targeting my "Pixel_6a" device because it has "transport_id:3"
+$ adb -t3 install <path/to/apkfile>.apk
+```
+
+More convenient option:
+* `npx expo run:android -d` will yield a dropdown of available devices!
 ## `http` folder
 
 In the HTTP folder you'll find a folder with what's hosted at https://passkeyapp.tkhqlabs.xyz. It contains a Cloudflare worker function to give apple-app-site-association the right MIME type.
