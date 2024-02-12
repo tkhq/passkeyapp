@@ -97,7 +97,7 @@ You can get your certificate fingerprint with:
 $ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
 ```
 
-## Expo build & run receipes
+## Expo build & run recipes
 
 * `eas build --platform android --local --profile preview` produces an APK file
 * If you are testing on a real device, enable [developer mode](https://developer.android.com/studio/debug/dev-options) and pair your device with Android Studio (see [this](https://developer.android.com/studio/run/device#wireless)) to get debug logs via [LogCat](https://developer.android.com/studio/debug/logcat). That's really helpful to figure out what's going on.
