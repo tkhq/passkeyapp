@@ -10,6 +10,9 @@ Here's a video of it in action on iOS:
 
 https://github.com/r-n-o/passkeyapp/assets/104520680/9fabf71c-d88a-4631-8bfa-14b55c72967b
 
+And here it is on Android:
+
+https://github.com/r-n-o/passkeyapp/assets/104520680/d71e6945-8962-46a5-98e7-f053c75c28d0
 
 ## Turnkey setup
 
