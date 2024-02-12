@@ -11,9 +11,9 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "TURNKEY_ORGANIZATION_ID": "<your turnkey organization ID>",
-        "TURNKEY_API_PUBLIC_KEY": "<your turnkey API public key>",
-        "TURNKEY_API_PRIVATE_KEY": "<your turnkey API private key>"
+        "EXPO_PUBLIC_TURNKEY_ORGANIZATION_ID": "<your turnkey organization ID>",
+        "EXPO_PUBLIC_TURNKEY_API_PUBLIC_KEY": "<your turnkey API public key>",
+        "EXPO_PUBLIC_TURNKEY_API_PRIVATE_KEY": "<your turnkey API private key>"
       },
       "android":  {
         "buildType": "apk",
