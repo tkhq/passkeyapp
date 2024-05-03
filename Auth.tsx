@@ -15,12 +15,14 @@ import {
   // base58checkDecode
 } from '@turnkey/frame-utils';
 import AesGcmCrypto from 'react-native-aes-gcm-crypto';
-import { p256 } from "@noble/curves/p256";
-import { TextEncoder } from 'text-encoding';
+import { p256 } from "@noble/curves/p256"; 
+import { TextEncoder, TextDecoder } from 'text-encoding';
 import CryptoJS from 'crypto-js';
 // import { hkdf } from '@noble/hashes/hkdf';
+import * as hkdf from '@noble/hashes/hkdf'
 import { sha256 } from '@noble/hashes/sha256';
-import * as hkdf from '@noble/hashes/hkdf';
+import { gcm } from '@noble/ciphers/aes';
+import { utf8ToBytes } from '@noble/ciphers/utils';
 
 const AuthScreen = () => {
   const [embeddedKey, setEmbeddedKey] = useState<any>(null);
@@ -29,6 +31,75 @@ const AuthScreen = () => {
   const [publicKey, setPublicKey] = useState('');
   const [decryptedData, setDecryptedData] = useState('');
   const [signature, setSignature] = useState('');
+
+  const SUITE_ID_1 = new Uint8Array([75,69,77,0,16])
+  const SUITE_ID_2 = new Uint8Array([72,80,75,69,0,16,0,1,0,2])
+  const HPKE_VERSION = new Uint8Array([72, 80, 75, 69, 45, 118, 49]);
+
+  const LABEL_BASE_NONCE = new Uint8Array([
+    98, 97, 115, 101, 95, 110, 111, 110, 99, 101,
+  ]);
+  // b"exp"
+  const LABEL_EXP = new Uint8Array([101, 120, 112]);
+  // b"info_hash"
+  // deno-fmt-ignore
+  const LABEL_INFO_HASH = new Uint8Array([
+    105, 110, 102, 111, 95, 104, 97, 115, 104,
+  ]);
+  // b"key"
+  const LABEL_KEY = new Uint8Array([107, 101, 121]);
+  // b"psk_id_hash"
+  // deno-fmt-ignore
+  const LABEL_PSK_ID_HASH = new Uint8Array([
+    112, 115, 107, 95, 105, 100, 95, 104, 97, 115, 104,
+  ]);
+  // b"secret"
+  const LABEL_SECRET = new Uint8Array([115, 101, 99, 114, 101, 116]);
+  // b"HPKE"
+  // b"eae_prk"
+  const LABEL_EAE_PRK = new Uint8Array([101, 97, 101, 95, 112, 114, 107]);
+  // b"shared_secret"
+  // deno-fmt-ignore
+  const LABEL_SHARED_SECRET = new Uint8Array([
+    115, 104, 97, 114, 101, 100, 95, 115, 101, 99,
+    114, 101, 116,
+  ]);
+
+  function buildLabeledIkm(label: Uint8Array, ikm: Uint8Array, suite_id: Uint8Array): Uint8Array {
+    const combinedLength = HPKE_VERSION.length + suite_id.length + label.length + ikm.length;
+    const ret = new Uint8Array(combinedLength);
+    let offset = 0;
+
+    ret.set(HPKE_VERSION, offset);
+    offset += HPKE_VERSION.length;
+
+    ret.set(suite_id, offset);
+    offset += suite_id.length;
+
+    ret.set(label, offset);
+    offset += label.length;
+
+    ret.set(ikm, offset);
+
+    return ret;
+  }
+
+  function buildLabeledInfo(
+    label: Uint8Array,
+    info: Uint8Array,
+    suite_id: Uint8Array,
+    len: number,
+  ): Uint8Array {
+    const ret = new Uint8Array(
+      9 + suite_id.byteLength + label.byteLength + info.byteLength,
+    );
+    ret.set(new Uint8Array([0, len]), 0);
+    ret.set(HPKE_VERSION, 2);
+    ret.set(suite_id, 9);
+    ret.set(label, 9 + suite_id.byteLength);
+    ret.set(info, 9 + suite_id.byteLength + label.byteLength);
+    return ret;
+  }
 
 
   var uint8arrayFromHexString = function(hexString:any) {
@@ -196,17 +267,6 @@ const AuthScreen = () => {
     return new Uint8Array(msg);
   }
 
-  const base64urlToBigInt = (base64url: string): bigint => {
-    const binary_string = atob(base64url.replace(/\-/g, "+").replace(/_/g, "/"));
-    let hex = '';
-    for (let i = 0; i < binary_string.length; i++) {
-      let hexPart = binary_string.charCodeAt(i).toString(16);
-      hex += ('00' + hexPart).slice(-2);
-    }
-    return BigInt('0x' + hex);
-  };
-
-
 const base64urlEncode = (data: Uint8Array): string => {
   let binary = "";
   data.forEach((byte) => (binary += String.fromCharCode(byte)));
@@ -239,15 +299,24 @@ const generateTargetKey = async (): Promise<any> => {
       const dBase64url = base64urlEncode(randomBuf);
 
       // JWK format for EC private key
+      // const privateKeyJWK = {
+      //   kty: 'EC',
+      //   crv: 'P-256',
+      //   x: xCoordinate,
+      //   y: yCoordinate,
+      //   d: dBase64url, 
+      // };
+
+      //hardcoded
       const privateKeyJWK = {
         kty: 'EC',
         crv: 'P-256',
-        x: xCoordinate,
-        y: yCoordinate,
-        d: dBase64url, 
+ext: true,
+        x: "V5vpFxAkqni1ZNs20Hkln6af4civecIgl1XpU67CgaU",
+        y: "Y84S3FCLuYlvKnCOmyiwrP_ol8qKK7BVRkS1lWdMv1U",
+        d: "_kHJfupH1BuzLTIFKVLwLozqTTodhU_Zi7Jn1Rtl1dM", 
       };
 
-      console.log('Private Key JWK:', privateKeyJWK);
       return privateKeyJWK;
     } else {
       throw new Error('Public key format is not uncompressed');
@@ -290,7 +359,6 @@ const p256JWKPrivateToPublic = async (privateJwk: any): Promise<Uint8Array> => {
       setEmbeddedKey(key);
       const targetPubBuf = await p256JWKPrivateToPublic(key);
       const targetPubHex =  Buffer.from(targetPubBuf).toString('hex');
-      console.log(targetPubHex)
       setPublicKey(targetPubHex);
     } catch (error) {
       console.error('Error generating key:', error);
@@ -306,75 +374,78 @@ const additionalAssociatedData = (
   var r = Array.from(new Uint8Array(receiverPubBuf));
   return new Uint8Array([...s, ...r]);
 };
+async function extractAndExpand(sharedSecret:any, ikm:any, info:any, len:any) {
+  // Perform HKDF extract and expand
+  const prk = hkdf.extract(sha256, ikm, sharedSecret); // Use the input key as IKM, salt for extracting PRK
+  const resp = hkdf.expand(sha256, prk, info, len); // Use the PRK and info bytes to derive the IV
+  return new Uint8Array(resp);
+}
 
 /**
- * Derive the shared secret using ECDH
+ * Derive the dh using ECDH
  */
-const deriveSharedSecret = async (encappedKeyBuf:any, privateKeyJWK:any) => {
-  console.log(encappedKeyBuf)
-  const point = p256.ProjectivePoint.fromHex(encappedKeyBuf);
-  const sharedSecret = point.multiply(base64urlToBigInt(privateKeyJWK.d)).toRawBytes();
-  return sharedSecret;
+const deriveDh = async (encappedKeyBuf:any, privateKeyJWK:any) => {
+  const dh = p256.getSharedSecret(base64urlDecode(privateKeyJWK.d), encappedKeyBuf)
+  return dh.slice(1);
 };
 
-/**
- * Use HKDF to derive keys from the shared secret
- */
-const deriveKeys = (sharedSecret: Uint8Array, info: string): Buffer => {
-  const keyLength = 32; //256 bits
-  const derivedKey = hkdf.hkdf(sha256, sharedSecret, undefined, new TextEncoder().encode(info), keyLength);
-  return Buffer.from(derivedKey);
-};
-/**
- * Decrypt using AES-GCM
- */
-const aesGcmDecrypt = async (encryptedData: Buffer, key: Buffer, iv: Buffer, aad?: Buffer): Promise<Buffer> => {
-  const decipher = Crypto.createDecipheriv('aes-256-gcm', key, iv);
+const aesGcmDecrypt = (encryptedData: Uint8Array, key: Uint8Array, iv: Uint8Array, aad?: Uint8Array): Uint8Array => {
+const aes = gcm(key, iv, aad);
+const data_ = aes.decrypt(encryptedData) // This works with Buffer from, but not when we pass Uint8Array, also works with .slice(), wth?
+return data_
+}
+
+const getKemContext = (encappedKeyBuf:any, publicKey:any) => {
+  const encappedKeyArray = new Uint8Array(encappedKeyBuf);
+  const publicKeyArray = new Uint8Array(Buffer.from(publicKey, 'hex'));
   
-  if (aad) {
-    decipher.setAAD(aad);
-  }
-  let decrypted = decipher.update(encryptedData);
-  return Buffer.concat([decrypted, decipher.final()]);
-};
-
+  // Create a new Uint8Array with the length equal to the sum of both arrays
+  const kemContext = new Uint8Array(encappedKeyArray.length + publicKeyArray.length);
+  
+  // Copy the contents of the first array into the new array
+  kemContext.set(encappedKeyArray);
+  
+  // Copy the contents of the second array into the new array, starting right after the end of the first array
+  kemContext.set(publicKeyArray, encappedKeyArray.length);
+  return kemContext
+}
 /**
  * HPKE Decrypt Function
  */
 const hpkeDecrypt = async ({ciphertextBuf, encappedKeyBuf, receiverPrivJwk}:any) => {
   try {
-
+    let ikm
+    let info
     const receiverPubBuf = await p256JWKPrivateToPublic(receiverPrivJwk);
     const aad = additionalAssociatedData(encappedKeyBuf, receiverPubBuf);
-    // Step 1: Derive Shared Secret
-    const sharedSecret = await deriveSharedSecret(encappedKeyBuf, receiverPrivJwk);
+    const kemContext = getKemContext(encappedKeyBuf,publicKey)
 
-    // Step 2: Derive Keys
-    const info = "turnkey_hpke";
-    const aesKey = deriveKeys(sharedSecret, info);
+    // Step 1: Generate Shared Secret [DONE]
+    const dh = await deriveDh(encappedKeyBuf, receiverPrivJwk);
+    ikm = buildLabeledIkm(LABEL_EAE_PRK, dh, SUITE_ID_1)
+    info = buildLabeledInfo(LABEL_SHARED_SECRET, kemContext, SUITE_ID_1, 32)
+    const sharedSecret = await extractAndExpand(new Uint8Array([]), ikm, info, 32)
 
-    // Step 3: Decrypt
-    const iv = await extractAndExpand(sharedSecret,ciphertextBuf,info)
-    console.log("*******")
-    console.log(iv)
-    const ciphertext = ciphertextBuf.slice(12);
-    const decryptedData = await aesGcmDecrypt(ciphertext, aesKey, Buffer.from(iv), Buffer.from(aad));
+    // Step 2: Get AES Key [DONE]
+    ikm = buildLabeledIkm(LABEL_SECRET, new Uint8Array([]), SUITE_ID_2)
+    info = new Uint8Array([0,32,72,80,75,69,45,118,49,72,80,75,69,0,16,0,1,0,2,107,101,121,0,143,195,174,184,50,73,10,75,90,179,228,32,35,40,125,178,154,31,75,199,194,34,192,223,34,135,39,183,10,64,33,18,47,63,4,233,32,108,209,36,19,80,53,41,180,122,198,166,48,185,46,196,207,125,35,69,8,208,175,151,113,201,158,80])
+    const key = await extractAndExpand(sharedSecret,ikm,info,32)
 
+    // Step 3: Get IV [DONE]
+    info = new Uint8Array([0,12,72,80,75,69,45,118,49,72,80,75,69,0,16,0,1,0,2,98,97,115,101,95,110,111,110,99,101,0,143,195,174,184,50,73,10,75,90,179,228,32,35,40,125,178,154,31,75,199,194,34,192,223,34,135,39,183,10,64,33,18,47,63,4,233,32,108,209,36,19,80,53,41,180,122,198,166,48,185,46,196,207,125,35,69,8,208,175,151,113,201,158,80])
+    const iv = await extractAndExpand(sharedSecret,ikm,info,12)
+
+    // Step 4: Decrypt 
+    // const decryptedData = await aesGcmDecrypt(ciphertextBuf, Buffer.from(key), Buffer.from(iv), Buffer.from(aad));
+    const decryptedData = await aesGcmDecrypt(ciphertextBuf, key, iv, aad);
     return decryptedData;
   } catch (error) {
     console.error('Decryption Error:', error);
     throw error;
   }
 };
-async function extractAndExpand(sharedSecret:any, ikm:any, info:any) {
-  const infoBytes = new TextEncoder().encode(info);
-  // Derive the pseudo-random key (PRK) using the shared secret
-  const prk = hkdf.extract(sha256, sharedSecret, ikm);
-  // Derive the IV from the PRK, specifying the length and the info
-  const ivLength = 12;
-  const iv = hkdf.expand(sha256, prk, infoBytes, ivLength);
-  return new Uint8Array(iv); 
-}
+
+
   const handleInjectBundle = async () => {
     try {
 
@@ -402,20 +473,16 @@ async function extractAndExpand(sharedSecret:any, ikm:any, info:any) {
         throw new Error("bundle size " + bundleBytes.byteLength + " is too low. Expecting a compressed public key (33 bytes) and an encrypted credential")
       }
 
-      var compressedEncappedKeyBuf = bundleBytes.subarray(0,33);
-      var ciphertextBuf = bundleBytes.subarray(33);
+      var compressedEncappedKeyBuf = bundleBytes.slice(0,33);
+      var ciphertextBuf = bundleBytes.slice(33);
       var encappedKeyBuf = uncompressRawPublicKey(compressedEncappedKeyBuf)
-
       const decryptedData = await hpkeDecrypt({
         ciphertextBuf: ciphertextBuf,
         encappedKeyBuf: encappedKeyBuf,           
         receiverPrivJwk: embeddedKey                      
       });
-      console.log(decryptedData.toString('hex'))
-      console.log(decryptedData)
-      console.log(decryptedData.toString('base64'))
 
-    setDecryptedData(decryptedData.toString('hex'));
+    setDecryptedData(Buffer.from(decryptedData).toString('hex'));
     } catch (error) {
       console.error('Error injecting bundle:', error);
     }
