@@ -18,8 +18,9 @@ import AesGcmCrypto from 'react-native-aes-gcm-crypto';
 import { p256 } from "@noble/curves/p256";
 import { TextEncoder } from 'text-encoding';
 import CryptoJS from 'crypto-js';
-import { hkdf } from '@noble/hashes/hkdf';
+// import { hkdf } from '@noble/hashes/hkdf';
 import { sha256 } from '@noble/hashes/sha256';
+import * as hkdf from '@noble/hashes/hkdf';
 
 const AuthScreen = () => {
   const [embeddedKey, setEmbeddedKey] = useState<any>(null);
@@ -321,7 +322,7 @@ const deriveSharedSecret = async (encappedKeyBuf:any, privateKeyJWK:any) => {
  */
 const deriveKeys = (sharedSecret: Uint8Array, info: string): Buffer => {
   const keyLength = 32; //256 bits
-  const derivedKey = hkdf(sha256, sharedSecret, undefined, new TextEncoder().encode(info), keyLength);
+  const derivedKey = hkdf.hkdf(sha256, sharedSecret, undefined, new TextEncoder().encode(info), keyLength);
   return Buffer.from(derivedKey);
 };
 /**
@@ -353,9 +354,11 @@ const hpkeDecrypt = async ({ciphertextBuf, encappedKeyBuf, receiverPrivJwk}:any)
     const aesKey = deriveKeys(sharedSecret, info);
 
     // Step 3: Decrypt
-    const iv = ciphertextBuf.slice(0, 12);
+    const iv = await extractAndExpand(sharedSecret,ciphertextBuf,info)
+    console.log("*******")
+    console.log(iv)
     const ciphertext = ciphertextBuf.slice(12);
-    const decryptedData = await aesGcmDecrypt(ciphertext, aesKey, iv, Buffer.from(aad));
+    const decryptedData = await aesGcmDecrypt(ciphertext, aesKey, Buffer.from(iv), Buffer.from(aad));
 
     return decryptedData;
   } catch (error) {
@@ -364,13 +367,13 @@ const hpkeDecrypt = async ({ciphertextBuf, encappedKeyBuf, receiverPrivJwk}:any)
   }
 };
 async function extractAndExpand(sharedSecret:any, ikm:any, info:any) {
-  const baseKey = await Crypto.subtle.importKey("raw", ikm, {name: "HKDF"}, false, ["deriveBits"]);
-  return await Crypto.subtle.deriveBits({
-      name: "HKDF",
-      hash: 'SHA-256',
-      salt: sharedSecret,
-      info: new TextEncoder().encode("turnkey_hpke"),
-  }, baseKey, 12 * 8);
+  const infoBytes = new TextEncoder().encode(info);
+  // Derive the pseudo-random key (PRK) using the shared secret
+  const prk = hkdf.extract(sha256, sharedSecret, ikm);
+  // Derive the IV from the PRK, specifying the length and the info
+  const ivLength = 12;
+  const iv = hkdf.expand(sha256, prk, infoBytes, ivLength);
+  return new Uint8Array(iv); 
 }
   const handleInjectBundle = async () => {
     try {
