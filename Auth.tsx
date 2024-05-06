@@ -1,23 +1,8 @@
-import Crypto from 'react-native-quick-crypto';
 import React, { useState, useEffect } from 'react';
+import { Buffer } from '@craftzdog/react-native-buffer';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { btoa, atob } from 'react-native-quick-base64'
-import {
-  // importCredential,
-  // p256JWKPrivateToPublic,
-  compressRawPublicKey,
-  // uncompressRawPublicKey,
-  convertEcdsaIeee1363ToDer,
-  // hpkeDecrypt,
-  // generateTargetKey,
-  // base64urlEncode,
-  // base64urlDecode,
-  // base58checkDecode
-} from '@turnkey/frame-utils';
-import AesGcmCrypto from 'react-native-aes-gcm-crypto';
 import { p256 } from "@noble/curves/p256"; 
-import { TextEncoder, TextDecoder } from 'text-encoding';
-// import { hkdf } from '@noble/hashes/hkdf';
 import * as hkdf from '@noble/hashes/hkdf'
 import { sha256 } from '@noble/hashes/sha256';
 import { gcm } from '@noble/ciphers/aes';
@@ -35,24 +20,6 @@ const AuthScreen = () => {
   const SUITE_ID_1 = new Uint8Array([75,69,77,0,16])
   const SUITE_ID_2 = new Uint8Array([72,80,75,69,0,16,0,1,0,2])
   const HPKE_VERSION = new Uint8Array([72, 80, 75, 69, 45, 118, 49]);
-
-  const LABEL_BASE_NONCE = new Uint8Array([
-    98, 97, 115, 101, 95, 110, 111, 110, 99, 101,
-  ]);
-  // b"exp"
-  const LABEL_EXP = new Uint8Array([101, 120, 112]);
-  // b"info_hash"
-  // deno-fmt-ignore
-  const LABEL_INFO_HASH = new Uint8Array([
-    105, 110, 102, 111, 95, 104, 97, 115, 104,
-  ]);
-  // b"key"
-  const LABEL_KEY = new Uint8Array([107, 101, 121]);
-  // b"psk_id_hash"
-  // deno-fmt-ignore
-  const LABEL_PSK_ID_HASH = new Uint8Array([
-    112, 115, 107, 95, 105, 100, 95, 104, 97, 115, 104,
-  ]);
   // b"secret"
   const LABEL_SECRET = new Uint8Array([115, 101, 99, 114, 101, 116]);
   // b"HPKE"
@@ -64,21 +31,6 @@ const AuthScreen = () => {
     115, 104, 97, 114, 101, 100, 95, 115, 101, 99,
     114, 101, 116,
   ]);
-
-        /**
-       * Converts a `BigInt` into a base64url encoded string
-       * @param {BigInt} num
-       * @return {string}
-       */
-        function bigIntToBase64Url (num:any) {
-          var hexString = num.toString(16);
-          // Add an extra 0 to the start of the string to get a valid hex string (even length)
-          // (e.g. 0x0123 instead of 0x123)
-          var hexString = hexString.padStart(Math.ceil(hexString.length/2)*2, 0)
-          var buffer = uint8arrayFromHexString(hexString);
-          return base64urlEncode(buffer)
-      }
-
 
   function buildLabeledIkm(label: Uint8Array, ikm: Uint8Array, suite_id: Uint8Array): Uint8Array {
     const combinedLength = HPKE_VERSION.length + suite_id.length + label.length + ikm.length;
@@ -241,68 +193,22 @@ const base64urlDecode = (base64url: string): Uint8Array => {
   return bytes;
 };
 
-const generateTargetKey = async (): Promise<any> => {
-  try {
-    // Generate a random private key
-    const randomBuf = Crypto.randomBytes(32);
-    const publicKey = await p256.getPublicKey(randomBuf, false);
-    const publicKeyHex = Buffer.from(publicKey).toString('hex');
-
-    if (publicKeyHex.startsWith('04')) {
-      const xCoordinate = base64urlEncode(Buffer.from(publicKeyHex.slice(2, 66), 'hex'));
-      const yCoordinate = base64urlEncode(Buffer.from(publicKeyHex.slice(66), 'hex'));
-      const dBase64url = base64urlEncode(randomBuf);
-
-      // JWK format for EC private key
-      const privateKeyJWK = {
-        kty: 'EC',
-        crv: 'P-256',
-        x: xCoordinate,
-        y: yCoordinate,
-        d: dBase64url, 
-      };
-
-      //hardcoded
-//       const privateKeyJWK = {
-//         kty: 'EC',
-//         crv: 'P-256',
-// ext: true,
-//         x: "V5vpFxAkqni1ZNs20Hkln6af4civecIgl1XpU67CgaU",
-//         y: "Y84S3FCLuYlvKnCOmyiwrP_ol8qKK7BVRkS1lWdMv1U",
-//         d: "_kHJfupH1BuzLTIFKVLwLozqTTodhU_Zi7Jn1Rtl1dM", 
-//       };
-
-      return privateKeyJWK;
-    } else {
-      throw new Error('Public key format is not uncompressed');
-    }
-  } catch (error) {
-    console.error('Error generating key:', error);
-    throw error;
+const randomBytes = (length: number): Uint8Array => {
+  const array = new Uint8Array(length);
+  for (let i = 0; i < length; i++) {
+    array[i] = Math.floor(Math.random() * 256);
   }
+  return array;
 };
 
-const p256JWKPrivateToPublic = async (privateJwk: any): Promise<Uint8Array> => {
-  const privateJwkCopy = { ...privateJwk };
-  delete privateJwkCopy.d; 
-
-  try {
-    const publicKey = await Crypto.subtle.importKey(
-      'jwk',
-      privateJwkCopy,
-      { name: 'ECDSA', namedCurve: 'P-256' },
-      true,
-      ['verify']
-    );
-    const rawPublicKey = await Crypto.subtle.exportKey('raw', publicKey);
-      const resp = new Uint8Array(rawPublicKey)
-    return new Uint8Array(rawPublicKey);
-  } catch (error) {
-    console.error('Error converting private key to public key:', error);
-    throw error;
-  }
-};
-
+  const generateTargetKey = async (): Promise<{
+    privateKey: string;
+    publicKey: Uint8Array;
+  }> => {
+    const privateKey = randomBytes(32);
+    const publicKey = p256.getPublicKey(privateKey, false);
+    return { privateKey: base64urlEncode(privateKey), publicKey: publicKey };
+  };
 
   useEffect(() => {
     handleGenerateKey();
@@ -311,9 +217,8 @@ const p256JWKPrivateToPublic = async (privateJwk: any): Promise<Uint8Array> => {
   const handleGenerateKey = async () => {
     try {
       const key = await generateTargetKey();
-      setEmbeddedKey(key);
-      const targetPubBuf = await p256JWKPrivateToPublic(key);
-      const targetPubHex =  Buffer.from(targetPubBuf).toString('hex');
+      setEmbeddedKey(key.privateKey);
+      const targetPubHex =  Buffer.from(key.publicKey).toString('hex');
       setPublicKey(targetPubHex);
       console.log(targetPubHex)
     } catch (error) {
@@ -340,8 +245,8 @@ async function extractAndExpand(sharedSecret:any, ikm:any, info:any, len:any) {
 /**
  * Derive the dh using ECDH
  */
-const deriveDh = async (encappedKeyBuf:any, privateKeyJWK:any) => {
-  const dh = p256.getSharedSecret(base64urlDecode(privateKeyJWK.d), encappedKeyBuf)
+const deriveDh = async (encappedKeyBuf:any, receiverPriv:any) => {
+  const dh = p256.getSharedSecret(base64urlDecode(receiverPriv), encappedKeyBuf)
   return dh.slice(1);
 };
 
@@ -368,16 +273,15 @@ const getKemContext = (encappedKeyBuf:any, publicKey:any) => {
 /**
  * HPKE Decrypt Function
  */
-const hpkeDecrypt = async ({ciphertextBuf, encappedKeyBuf, receiverPrivJwk}:any) => {
+const hpkeDecrypt = async ({ciphertextBuf, encappedKeyBuf, receiverPriv}:any) => {
   try {
     let ikm
     let info
-    const receiverPubBuf = await p256JWKPrivateToPublic(receiverPrivJwk);
+    const receiverPubBuf = await p256.getPublicKey(base64urlDecode(receiverPriv), false);
     const aad = additionalAssociatedData(encappedKeyBuf, receiverPubBuf);
     const kemContext = getKemContext(encappedKeyBuf,publicKey)
-
     // Step 1: Generate Shared Secret [DONE]
-    const dh = await deriveDh(encappedKeyBuf, receiverPrivJwk);
+    const dh = await deriveDh(encappedKeyBuf, receiverPriv);
     ikm = buildLabeledIkm(LABEL_EAE_PRK, dh, SUITE_ID_1)
     info = buildLabeledInfo(LABEL_SHARED_SECRET, kemContext, SUITE_ID_1, 32)
     const sharedSecret = await extractAndExpand(new Uint8Array([]), ikm, info, 32)
@@ -421,16 +325,6 @@ function base64StringToBase64UrlEncodedString(input: string): string {
         // Uppercase o (O), uppercase i (I), lowercase L (l), and 0 aren't in the character set either.
         && credentialBundle.indexOf("O") === -1 && credentialBundle.indexOf("I") === -1 && credentialBundle.indexOf("l") === -1 && credentialBundle.indexOf("0") === -1
       ) {
-        // If none of these characters are in the bundle we assume it's a base58check-encoded string
-        // This isn't perfect: there's a small chance that a base64url-encoded string doesn't have any of these characters by chance!
-        // But we accept this risk given this branching is only here to support our transition to base58check.
-        // I hear you'd like to quantify this risk? Let's do it.
-        // Assuming random bytes in our bundle and a bundle length of 33 (public key, compressed) + 48 (encrypted cred) = 81 bytes.
-        // The odds of a byte being in the overlap set between base58 and base64url is 58/64=0.90625.
-        // Which means the odds of a 81 bytes string being in the overlap character set for its entire length is...
-        // ... 0.90625^81 = 0.0003444209703
-        // Are you convinced that this is good enough? I am :)
-        // var bundleBytes = await base58checkDecode(credentialBundle);
         var bundleBytes = bs58check.decode(credentialBundle)
       } else {
         var bundleBytes = base64urlDecode(credentialBundle);
@@ -446,7 +340,7 @@ function base64StringToBase64UrlEncodedString(input: string): string {
       const decryptedData = await hpkeDecrypt({
         ciphertextBuf: ciphertextBuf,
         encappedKeyBuf: encappedKeyBuf,           
-        receiverPrivJwk: embeddedKey                      
+        receiverPriv: embeddedKey                      
       });
 
     setDecryptedData(Buffer.from(decryptedData).toString('hex'));
