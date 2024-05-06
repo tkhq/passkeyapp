@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { btoa, atob } from 'react-native-quick-base64'
 import {
-  importCredential,
+  // importCredential,
   // p256JWKPrivateToPublic,
   compressRawPublicKey,
   // uncompressRawPublicKey,
@@ -17,12 +17,12 @@ import {
 import AesGcmCrypto from 'react-native-aes-gcm-crypto';
 import { p256 } from "@noble/curves/p256"; 
 import { TextEncoder, TextDecoder } from 'text-encoding';
-import CryptoJS from 'crypto-js';
 // import { hkdf } from '@noble/hashes/hkdf';
 import * as hkdf from '@noble/hashes/hkdf'
 import { sha256 } from '@noble/hashes/sha256';
 import { gcm } from '@noble/ciphers/aes';
-import { utf8ToBytes } from '@noble/ciphers/utils';
+import bs58check from 'bs58check';
+import {signWithApiKey} from '@turnkey/api-key-stamper'
 
 const AuthScreen = () => {
   const [embeddedKey, setEmbeddedKey] = useState<any>(null);
@@ -64,6 +64,21 @@ const AuthScreen = () => {
     115, 104, 97, 114, 101, 100, 95, 115, 101, 99,
     114, 101, 116,
   ]);
+
+        /**
+       * Converts a `BigInt` into a base64url encoded string
+       * @param {BigInt} num
+       * @return {string}
+       */
+        function bigIntToBase64Url (num:any) {
+          var hexString = num.toString(16);
+          // Add an extra 0 to the start of the string to get a valid hex string (even length)
+          // (e.g. 0x0123 instead of 0x123)
+          var hexString = hexString.padStart(Math.ceil(hexString.length/2)*2, 0)
+          var buffer = uint8arrayFromHexString(hexString);
+          return base64urlEncode(buffer)
+      }
+
 
   function buildLabeledIkm(label: Uint8Array, ikm: Uint8Array, suite_id: Uint8Array): Uint8Array {
     const combinedLength = HPKE_VERSION.length + suite_id.length + label.length + ikm.length;
@@ -159,7 +174,7 @@ const AuthScreen = () => {
         return uint8arrayFromHexString(uncompressedHexString)
       }
 
-      function modSqrt(x, p) {
+      function modSqrt(x:any, p:any) {
         if (p <= BigInt(0)) {
           throw new Error("p must be positive");
         }
@@ -207,66 +222,6 @@ const AuthScreen = () => {
         return (n & m) !== BigInt(0);
       }
 
-
-  async function base58checkDecode(s:any) {
-    if (s.length < 5) {
-      throw new Error(`cannot base58-decode a string of length < 5 (found length ${s.length})`)
-    }
-
-    // See https://en.bitcoin.it/wiki/Base58Check_encoding
-    var alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-    var decoded = BigInt(0);
-    var decodedBytes = [];
-    var leadingZeros = [];
-    for (var i = 0; i < s.length; i++) {
-      if (alphabet.indexOf(s[i]) === -1) {
-        throw new Error(`cannot base58-decode: ${s[i]} isn't a valid character`)
-      }
-      var carry = alphabet.indexOf(s[i]);
-
-      // If the current base58 digit is 0, append a 0 byte.
-      // "i == leadingZeros.length" can only be true if we have not seen non-zero bytes so far.
-      // If we had seen a non-zero byte, carry wouldn't be 0, and i would be strictly more than `leadingZeros.length`
-      if (carry == 0 && i === leadingZeros.length) {
-        leadingZeros.push(0);
-      }
-
-      var j = 0;
-      while (j < decodedBytes.length || carry > 0) {
-        var currentByte:any = decodedBytes[j];
-
-        // shift the current byte 58 units and add the carry amount
-        // (or just add the carry amount if this is a new byte -- undefined case)
-        if (currentByte === undefined) {
-          currentByte = carry
-        } else {
-          currentByte = currentByte * 58 + carry
-        }
-
-        // find the new carry amount (1-byte shift of current byte value)
-        carry = currentByte >> 8;
-        // reset the current byte to the remainder (the carry amount will pass on the overflow)
-        decodedBytes[j] = currentByte % 256;
-        j++
-      }
-    }
-
-    var result = leadingZeros.concat(decodedBytes.reverse());
-
-    var foundChecksum = result.slice(result.length - 4)
-
-    var msg = result.slice(0, result.length - 4)
-    var checksum1 = await crypto.subtle.digest("SHA-256", new Uint8Array(msg))
-    var checksum2 = await crypto.subtle.digest("SHA-256", new Uint8Array(checksum1))
-    var computedChecksum = Array.from(new Uint8Array(checksum2)).slice(0, 4);
-
-    if (computedChecksum.toString() != foundChecksum.toString()) {
-      throw new Error(`checksums do not match: computed ${computedChecksum} but found ${foundChecksum}`)
-    }
-
-    return new Uint8Array(msg);
-  }
-
 const base64urlEncode = (data: Uint8Array): string => {
   let binary = "";
   data.forEach((byte) => (binary += String.fromCharCode(byte)));
@@ -299,23 +254,23 @@ const generateTargetKey = async (): Promise<any> => {
       const dBase64url = base64urlEncode(randomBuf);
 
       // JWK format for EC private key
-      // const privateKeyJWK = {
-      //   kty: 'EC',
-      //   crv: 'P-256',
-      //   x: xCoordinate,
-      //   y: yCoordinate,
-      //   d: dBase64url, 
-      // };
-
-      //hardcoded
       const privateKeyJWK = {
         kty: 'EC',
         crv: 'P-256',
-ext: true,
-        x: "V5vpFxAkqni1ZNs20Hkln6af4civecIgl1XpU67CgaU",
-        y: "Y84S3FCLuYlvKnCOmyiwrP_ol8qKK7BVRkS1lWdMv1U",
-        d: "_kHJfupH1BuzLTIFKVLwLozqTTodhU_Zi7Jn1Rtl1dM", 
+        x: xCoordinate,
+        y: yCoordinate,
+        d: dBase64url, 
       };
+
+      //hardcoded
+//       const privateKeyJWK = {
+//         kty: 'EC',
+//         crv: 'P-256',
+// ext: true,
+//         x: "V5vpFxAkqni1ZNs20Hkln6af4civecIgl1XpU67CgaU",
+//         y: "Y84S3FCLuYlvKnCOmyiwrP_ol8qKK7BVRkS1lWdMv1U",
+//         d: "_kHJfupH1BuzLTIFKVLwLozqTTodhU_Zi7Jn1Rtl1dM", 
+//       };
 
       return privateKeyJWK;
     } else {
@@ -360,6 +315,7 @@ const p256JWKPrivateToPublic = async (privateJwk: any): Promise<Uint8Array> => {
       const targetPubBuf = await p256JWKPrivateToPublic(key);
       const targetPubHex =  Buffer.from(targetPubBuf).toString('hex');
       setPublicKey(targetPubHex);
+      console.log(targetPubHex)
     } catch (error) {
       console.error('Error generating key:', error);
     }
@@ -445,6 +401,16 @@ const hpkeDecrypt = async ({ciphertextBuf, encappedKeyBuf, receiverPrivJwk}:any)
   }
 };
 
+function stringToBase64urlString(input: string): string {
+  // string to base64 -- we do not rely on the browser's btoa since it's not present in React Native environments
+  const base64String = btoa(input);
+  return base64StringToBase64UrlEncodedString(base64String);
+}
+
+function base64StringToBase64UrlEncodedString(input: string): string {
+  return input.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+
 
   const handleInjectBundle = async () => {
     try {
@@ -464,7 +430,8 @@ const hpkeDecrypt = async ({ciphertextBuf, encappedKeyBuf, receiverPrivJwk}:any)
         // Which means the odds of a 81 bytes string being in the overlap character set for its entire length is...
         // ... 0.90625^81 = 0.0003444209703
         // Are you convinced that this is good enough? I am :)
-        var bundleBytes = await base58checkDecode(credentialBundle);
+        // var bundleBytes = await base58checkDecode(credentialBundle);
+        var bundleBytes = bs58check.decode(credentialBundle)
       } else {
         var bundleBytes = base64urlDecode(credentialBundle);
       }
@@ -488,13 +455,27 @@ const hpkeDecrypt = async ({ciphertextBuf, encappedKeyBuf, receiverPrivJwk}:any)
     }
   };
 
+
+  
   const handleStampPayload = async () => {
     try {
-      const credential = await importCredential(embeddedKey!);
-      // const rawSignature = await signPayload(credential, payload);
-      const rawSignature: Uint8Array = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-      const derSignature = await convertEcdsaIeee1363ToDer(rawSignature);
-      setSignature(base64urlEncode(derSignature));
+      const content = JSON.stringify(payload)
+      const publicKey = Buffer.from(p256.getPublicKey(decryptedData, true)).toString('hex')
+      const privateKey = decryptedData
+      const signature = await signWithApiKey({content, publicKey, privateKey} )
+      // // const rawSignature = await signPayload(credential, payload);
+      // const rawSignature: Uint8Array = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+      // const derSignature = await convertEcdsaIeee1363ToDer(rawSignature);
+      console.log(payload)
+      console.log(content)
+      console.log(signature)
+      setSignature(signature);
+      const stamp = {
+        publicKey: publicKey,
+        scheme: "SIGNATURE_SCHEME_TK_API_P256",
+        signature: signature,
+      };
+      console.log(stringToBase64urlString(JSON.stringify(stamp)))
     } catch (error) {
       console.error('Error stamping payload:', error);
     }
