@@ -1,7 +1,9 @@
+import 'react-native-get-random-values'
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import {signWithApiKey} from '@turnkey/api-key-stamper'
-import {generateTargetKey, decryptBundle, stringToBase64urlString, base64StringToBase64UrlEncodedString, uint8arrayToHexString, getPublicKey, uint8arrayFromHexString} from '@turnkey/crypto'
+import {generateP256KeyPair, decryptBundle, getPublicKey, uint8ArrayFromHexString} from '@turnkey/crypto' // TODO: uint8arrayFromHexString Should live in /encoding
+import {stringToBase64urlString, uint8ArrayToHexString} from '@turnkey/encoding'
 
 const AuthScreen = () => {
   const [embeddedKey, setEmbeddedKey] = useState<any>(null);
@@ -17,39 +19,32 @@ const AuthScreen = () => {
 
   const handleGenerateKey = async () => {
     try {
-      const key = await generateTargetKey();
+      const key = generateP256KeyPair();
       setEmbeddedKey(key.privateKey);
-      const targetPubHex = uint8arrayToHexString(key.publicKey);
+      const targetPubHex = key.publicKeyUncompressed;
       console.log(targetPubHex)
-      setPublicKey(targetPubHex);
+      setPublicKey(targetPubHex!);
     } catch (error) {
       console.error('Error generating key:', error);
     }
   };
 
-  const handleInjectBundle = async () => {
+  const handleInjectBundle = () => {
     try{
-    const decryptedData = await decryptBundle(credentialBundle, embeddedKey) as Uint8Array
+    const decryptedData = decryptBundle(credentialBundle, embeddedKey) as Uint8Array
 
-    setDecryptedData(uint8arrayToHexString(decryptedData));
+    setDecryptedData(uint8ArrayToHexString(decryptedData));
     }
     catch (error) {
       console.error('Error injecting bundle:', error);
     }
   };
   
-  const handleStampPayload = async () => { //TODO
+  const handleStampPayload = async () => {
     try {
-      const content = JSON.stringify(payload)
-      const publicKey = uint8arrayToHexString(getPublicKey(uint8arrayFromHexString(decryptedData), true))
+      const publicKey = uint8ArrayToHexString(getPublicKey(uint8ArrayFromHexString(decryptedData), true))
       const privateKey = decryptedData
-      const signature = await signWithApiKey({content, publicKey, privateKey} )
-      // // const rawSignature = await signPayload(credential, payload);
-      // const rawSignature: Uint8Array = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-      // const derSignature = await convertEcdsaIeee1363ToDer(rawSignature);
-      console.log(payload)
-      console.log(content)
-      console.log(signature)
+      const signature = await signWithApiKey({content: payload, publicKey, privateKey} )
       setSignature(signature);
       const stamp = {
         publicKey: publicKey,
@@ -61,6 +56,7 @@ const AuthScreen = () => {
       console.error('Error stamping payload:', error);
     }
   };
+
 
   return (
     <View style={styles.container}>
