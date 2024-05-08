@@ -11,14 +11,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "associatedDomains": [
-        "webcredentials:passkeyapp.tkhqlabs.xyz"
-      ],
+      "associatedDomains": ["webcredentials:passkeyapp.tkhqlabs.xyz"],
       "bundleIdentifier": "xyz.tkhqlabs.passkeyapp"
     },
     "android": {
@@ -33,8 +29,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "ed0e819e-fb77-4bfb-9e26-6c0634c2916b"
+        "projectId": "64f5f2df-f517-426c-80df-33e0619e3cbd"
       }
-    }
+    },
+    "owner": "moe-dev"
   }
 }
