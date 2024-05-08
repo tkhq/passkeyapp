@@ -1,123 +1,130 @@
 <!doctype html>
 <html class="no-js" lang="">
+  <head>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta charset="utf-8" />
+    <title>PasskeyApp experiment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        text-align: center;
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+        max-width: 1024px;
+        margin: auto;
+      }
+      input,
+      button {
+        font-size: 1.2em;
+        padding: 0.5em;
+        border-radius: 4px;
+      }
+      button {
+        background-color: rgb(202, 240, 223);
+      }
+    </style>
+  </head>
 
-<head>
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <meta charset="utf-8">
-  <title>PasskeyApp experiment</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      text-align: center;
-      font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
-      max-width: 1024px;
-      margin: auto;
-    }
-    input, button {
-      font-size: 1.2em;
-      padding: 0.5em;
-      border-radius: 4px;
-    }
-    button {
-      background-color: rgb(202, 240, 223);
-    }
-  </style>
-</head>
+  <body>
+    <h1>Passkeyapp home</h1>
+    <p>
+      Most of the action happens with the companion mobile apps, but it's fun to
+      try to share between web and native!
+    </p>
 
-<body>
-  <h1>Passkeyapp home</h1>
-  <p>Most of the action happens with the companion mobile apps, but it's fun to try to share between web and native!</p>
+    <p>Below, a simple form to create passkeys</p>
+    <form>
+      <input type="text" id="passkey-name" placeholder="Passkey Name" />
+      <button id="create-passkey">Generate</button>
+    </form>
 
-  <p>Below, a simple form to create passkeys</p>
-  <form>
-    <input type="text" id="passkey-name" placeholder="Passkey Name" />
-    <button id="create-passkey">Generate</button>
-  </form>
+    <p>Or...list your passkeys!</p>
+    <button id="list-passkeys">Trigger passkey prompt</button>
 
-  <p>Or...list your passkeys!</p>
-  <button id="list-passkeys">Trigger passkey prompt</button>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        document
+          .getElementById("list-passkeys")
+          .addEventListener("click", async function (e) {
+            e.preventDefault();
+            const challenge = new Uint8Array(32);
+            crypto.getRandomValues(challenge);
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      document.getElementById("list-passkeys").addEventListener("click", async function(e) {
-        e.preventDefault();
-        const challenge = new Uint8Array(32);
-          crypto.getRandomValues(challenge);
-
-          const userId = new Uint8Array(32);
-          crypto.getRandomValues(userId);
-          try {
-            const authentication = await navigator.credentials.get({
-              publicKey: {
-                challenge: challenge,
-
-              },
-              rp: {
-                  "id": window.location.hostname,
-                  "name": "PasskeyApp on Web"
-              },
-            });
-            console.log(authentication);
-            alert("Successful passkey authentication");
-          } catch(e) {
-            const message = `error occurred during passkey authentication: ${e}`;
-            console.error(message);
-            alert(message);
-          }
-      });
-
-      document.getElementById("create-passkey").addEventListener("click", async function(e) {
-        e.preventDefault();
-        try {
-          const passkeyName = document.getElementById("passkey-name").value;
-          if (!passkeyName || passkeyName.length === 0) {
-            alert("please give a name to your passkey")
-            return
-          }
-
-          const challenge = new Uint8Array(32);
-          crypto.getRandomValues(challenge);
-
-          const userId = new Uint8Array(32);
-          crypto.getRandomValues(userId);
-
-          const newCredential = await navigator.credentials.create({
-            "publicKey": {
-              "authenticatorSelection": {
-                "requireResidentKey": true,
-                "residentKey": "required"
-              },
-              "challenge": challenge,
-              "pubKeyCredParams": [
-                {
-                  "alg": -7,
-                  "type": "public-key"
+            const userId = new Uint8Array(32);
+            crypto.getRandomValues(userId);
+            try {
+              const authentication = await navigator.credentials.get({
+                publicKey: {
+                  challenge: challenge,
                 },
-                {
-                  "alg": -257,
-                  "type": "public-key"
-                }
-              ],
-              "rp": {
-                "id": window.location.hostname,
-                "name": "PasskeyApp on Web"
-              },
-              "user": {
-                "name": passkeyName,
-                "displayName": passkeyName,
-                "id": userId,
-              }
+                rp: {
+                  id: window.location.hostname,
+                  name: "PasskeyApp on Web",
+                },
+              });
+              console.log(authentication);
+              alert("Successful passkey authentication");
+            } catch (e) {
+              const message = `error occurred during passkey authentication: ${e}`;
+              console.error(message);
+              alert(message);
             }
-          })
-          console.log("passkey created: ", newCredential);
-          alert("Success! Passkey created.");
-        } catch(e) {
-          const message = `error occurred during passkey creation: ${e}`;
-          console.error(message);
-          alert(message);
-        }
-      })
-    })
-  </script>
-</body>
+          });
+
+        document
+          .getElementById("create-passkey")
+          .addEventListener("click", async function (e) {
+            e.preventDefault();
+            try {
+              const passkeyName = document.getElementById("passkey-name").value;
+              if (!passkeyName || passkeyName.length === 0) {
+                alert("please give a name to your passkey");
+                return;
+              }
+
+              const challenge = new Uint8Array(32);
+              crypto.getRandomValues(challenge);
+
+              const userId = new Uint8Array(32);
+              crypto.getRandomValues(userId);
+
+              const newCredential = await navigator.credentials.create({
+                publicKey: {
+                  authenticatorSelection: {
+                    requireResidentKey: true,
+                    residentKey: "required",
+                  },
+                  challenge: challenge,
+                  pubKeyCredParams: [
+                    {
+                      alg: -7,
+                      type: "public-key",
+                    },
+                    {
+                      alg: -257,
+                      type: "public-key",
+                    },
+                  ],
+                  rp: {
+                    id: window.location.hostname,
+                    name: "PasskeyApp on Web",
+                  },
+                  user: {
+                    name: passkeyName,
+                    displayName: passkeyName,
+                    id: userId,
+                  },
+                },
+              });
+              console.log("passkey created: ", newCredential);
+              alert("Success! Passkey created.");
+            } catch (e) {
+              const message = `error occurred during passkey creation: ${e}`;
+              console.error(message);
+              alert(message);
+            }
+          });
+      });
+    </script>
+  </body>
 </html>

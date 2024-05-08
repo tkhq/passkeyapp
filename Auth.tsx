@@ -1,17 +1,25 @@
-import 'react-native-get-random-values'
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
-import {signWithApiKey} from '@turnkey/api-key-stamper'
-import {generateP256KeyPair, decryptBundle, getPublicKey, uint8ArrayFromHexString} from '@turnkey/crypto' // TODO: uint8arrayFromHexString Should live in /encoding
-import {stringToBase64urlString, uint8ArrayToHexString} from '@turnkey/encoding'
+import "react-native-get-random-values";
+import React, { useState, useEffect } from "react";
+import { View, Text, TextInput, Button, StyleSheet } from "react-native";
+import { signWithApiKey } from "@turnkey/api-key-stamper";
+import {
+  generateP256KeyPair,
+  decryptBundle,
+  getPublicKey,
+} from "@turnkey/crypto";
+import {
+  stringToBase64urlString,
+  uint8ArrayToHexString,
+  uint8ArrayFromHexString,
+} from "@turnkey/encoding";
 
 const AuthScreen = () => {
   const [embeddedKey, setEmbeddedKey] = useState<any>(null);
-  const [credentialBundle, setCredentialBundle] = useState('');
-  const [payload, setPayload] = useState('');
-  const [publicKey, setPublicKey] = useState('');
-  const [decryptedData, setDecryptedData] = useState('');
-  const [signature, setSignature] = useState('');
+  const [credentialBundle, setCredentialBundle] = useState("");
+  const [payload, setPayload] = useState("");
+  const [publicKey, setPublicKey] = useState("");
+  const [decryptedData, setDecryptedData] = useState("");
+  const [signature, setSignature] = useState("");
 
   useEffect(() => {
     handleGenerateKey();
@@ -22,41 +30,48 @@ const AuthScreen = () => {
       const key = generateP256KeyPair();
       setEmbeddedKey(key.privateKey);
       const targetPubHex = key.publicKeyUncompressed;
-      console.log(targetPubHex)
+      console.log("Target Public key:", targetPubHex); // this is your target public key - use this value in email auth
       setPublicKey(targetPubHex!);
     } catch (error) {
-      console.error('Error generating key:', error);
+      console.error("Error generating key:", error);
     }
   };
 
   const handleInjectBundle = () => {
-    try{
-    const decryptedData = decryptBundle(credentialBundle, embeddedKey) as Uint8Array
+    try {
+      const decryptedData = decryptBundle(
+        credentialBundle,
+        embeddedKey,
+      ) as Uint8Array;
 
-    setDecryptedData(uint8ArrayToHexString(decryptedData));
-    }
-    catch (error) {
-      console.error('Error injecting bundle:', error);
+      setDecryptedData(uint8ArrayToHexString(decryptedData));
+    } catch (error) {
+      console.error("Error injecting bundle:", error);
     }
   };
-  
+
   const handleStampPayload = async () => {
     try {
-      const publicKey = uint8ArrayToHexString(getPublicKey(uint8ArrayFromHexString(decryptedData), true))
-      const privateKey = decryptedData
-      const signature = await signWithApiKey({content: payload, publicKey, privateKey} )
+      const publicKey = uint8ArrayToHexString(
+        getPublicKey(uint8ArrayFromHexString(decryptedData), true),
+      );
+      const privateKey = decryptedData;
+      const signature = await signWithApiKey({
+        content: payload,
+        publicKey,
+        privateKey,
+      });
       setSignature(signature);
       const stamp = {
         publicKey: publicKey,
         scheme: "SIGNATURE_SCHEME_TK_API_P256",
         signature: signature,
       };
-      console.log(stringToBase64urlString(JSON.stringify(stamp)))
+      console.log("X-Stamp:", stringToBase64urlString(JSON.stringify(stamp))); // use this as your X-Stamp in your requests
     } catch (error) {
-      console.error('Error stamping payload:', error);
+      console.error("Error stamping payload:", error);
     }
   };
-
 
   return (
     <View style={styles.container}>
@@ -76,7 +91,7 @@ const AuthScreen = () => {
         placeholder="Enter Payload"
       />
       <Button title="Stamp Payload" onPress={handleStampPayload} />
-      <Text>Decrypted Data: {decryptedData}</Text>
+      <Text>Decrypted Key: {decryptedData}</Text>
       <Text>Signature: {signature}</Text>
     </View>
   );
@@ -85,8 +100,8 @@ const AuthScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   input: {
@@ -94,7 +109,7 @@ const styles = StyleSheet.create({
     margin: 12,
     borderWidth: 1,
     padding: 10,
-    width: '100%',
+    width: "100%",
   },
 });
 

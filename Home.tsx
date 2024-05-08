@@ -1,25 +1,33 @@
-import { StatusBar } from 'expo-status-bar';
-import { Button, StyleSheet, Text, View } from 'react-native';
-import { PasskeyStamper, createPasskey, isSupported } from "@turnkey/react-native-passkey-stamper";
+import { StatusBar } from "expo-status-bar";
+import { Button, StyleSheet, Text, View } from "react-native";
+import {
+  PasskeyStamper,
+  createPasskey,
+  isSupported,
+} from "@turnkey/react-native-passkey-stamper";
 import { ApiKeyStamper } from "@turnkey/api-key-stamper";
 import { TurnkeyClient } from "@turnkey/http";
 import { Buffer } from "buffer";
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from "@react-navigation/native";
 
-const RPID = "passkeyapp.tkhqlabs.xyz"
+const RPID = "passkeyapp.tkhqlabs.xyz";
 
 export default function Home() {
-  const navigation = useNavigation(); // Hook to get the navigation objec
+  const navigation = useNavigation();
   const navigateToAuth = () => {
-    navigation.navigate('AuthScreen'); // Use the navigate function with the screen name
+    //@ts-ignore
+    navigation.navigate("AuthScreen"); // Use the navigate function with the screen name
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Native Passkeys + Turnkey</Text>
-      <Button title='Sign Up' onPress={onPasskeyCreate}></Button>
-      <Button title='Sign In & get your ID' onPress={onPasskeySignature}></Button>
-      <Button title='Auth' onPress={navigateToAuth}></Button>
+      <Button title="Sign Up" onPress={onPasskeyCreate}></Button>
+      <Button
+        title="Sign In & get your ID"
+        onPress={onPasskeySignature}
+      ></Button>
+      <Button title="Auth Demo" onPress={navigateToAuth}></Button>
       <StatusBar style="auto" />
     </View>
   );
@@ -28,27 +36,29 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: "600",
     margin: 42,
   },
 });
 
-
 async function onPasskeyCreate() {
   if (!isSupported()) {
-    alert("Passkeys are not supported on this device")
+    alert("Passkeys are not supported on this device");
   }
 
   try {
-    const now = new Date()
-    const humanReadableDateTime = `${now.getFullYear()}-${now.getMonth()}-${now.getDay()}@${now.getHours()}h${now.getMinutes()}min`
-    console.log("creating passkey with the following datetime: ", humanReadableDateTime);
+    const now = new Date();
+    const humanReadableDateTime = `${now.getFullYear()}-${now.getMonth()}-${now.getDay()}@${now.getHours()}h${now.getMinutes()}min`;
+    console.log(
+      "creating passkey with the following datetime: ",
+      humanReadableDateTime,
+    );
 
     // ID isn't visible by users, but needs to be random enough and valid base64 (for Android)
     const userId = Buffer.from(String(Date.now())).toString("base64");
@@ -72,13 +82,15 @@ async function onPasskeyCreate() {
         residentKey: "required",
         requireResidentKey: true,
         userVerification: "preferred",
-      }
-    })
+      },
+    });
     console.log("passkey registration succeeded: ", authenticatorParams);
     const response = await createSubOrganization(authenticatorParams);
-    console.log("created sub-org", response)
-    alert(`Sub-org created! Your ID: ${response.activity.result.createSubOrganizationResultV4?.subOrganizationId}`);
-  } catch(e) {
+    console.log("created sub-org", response);
+    alert(
+      `Sub-org created! Your ID: ${response.activity.result.createSubOrganizationResultV4?.subOrganizationId}`,
+    );
+  } catch (e) {
     console.error("error during passkey creation", e);
   }
 }
@@ -88,23 +100,33 @@ async function onPasskeySignature() {
     const stamper = await new PasskeyStamper({
       rpId: RPID,
     });
-    const client = new TurnkeyClient({baseUrl: "https://api.turnkey.com"}, stamper);
+    const client = new TurnkeyClient(
+      { baseUrl: "https://api.turnkey.com" },
+      stamper,
+    );
     const getWhoamiResult = await client.getWhoami({
-      organizationId: process.env.EXPO_PUBLIC_TURNKEY_ORGANIZATION_ID
-    })
+      organizationId: process.env.EXPO_PUBLIC_TURNKEY_ORGANIZATION_ID,
+    });
     console.log("passkey authentication succeeded: ", getWhoamiResult);
-    alert(`Successfully logged into sub-organization ${getWhoamiResult.organizationId}`)
-  } catch(e) {
+    alert(
+      `Successfully logged into sub-organization ${getWhoamiResult.organizationId}`,
+    );
+  } catch (e) {
     console.error("error during passkey signature", e);
   }
 }
 
-async function createSubOrganization(authenticatorParams: Awaited<ReturnType<typeof createPasskey>>) {
+async function createSubOrganization(
+  authenticatorParams: Awaited<ReturnType<typeof createPasskey>>,
+) {
   const stamper = new ApiKeyStamper({
     apiPublicKey: process.env.EXPO_PUBLIC_TURNKEY_API_PUBLIC_KEY,
     apiPrivateKey: process.env.EXPO_PUBLIC_TURNKEY_API_PRIVATE_KEY,
   });
-  const client = new TurnkeyClient({baseUrl: "https://api.turnkey.com"}, stamper);
+  const client = new TurnkeyClient(
+    { baseUrl: "https://api.turnkey.com" },
+    stamper,
+  );
 
   const data = await client.createSubOrganization({
     type: "ACTIVITY_TYPE_CREATE_SUB_ORGANIZATION_V4",
@@ -117,10 +139,10 @@ async function createSubOrganization(authenticatorParams: Awaited<ReturnType<typ
         {
           userName: "Root User",
           apiKeys: [],
-          authenticators: [authenticatorParams]
+          authenticators: [authenticatorParams],
         },
       ],
-    }
+    },
   });
-  return data
+  return data;
 }

@@ -15,7 +15,7 @@
         "EXPO_PUBLIC_TURNKEY_API_PUBLIC_KEY": "<your turnkey API public key>",
         "EXPO_PUBLIC_TURNKEY_API_PRIVATE_KEY": "<your turnkey API private key>"
       },
-      "android":  {
+      "android": {
         "buildType": "apk",
         "credentialsSource": "local"
       }

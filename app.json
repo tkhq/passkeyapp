@@ -11,14 +11,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "associatedDomains": [
-        "webcredentials:passkeyapp.tkhqlabs.xyz"
-      ],
+      "associatedDomains": ["webcredentials:passkeyapp.tkhqlabs.xyz"],
       "bundleIdentifier": "xyz.tkhqlabs.passkeyapp"
     },
     "android": {
