@@ -14,6 +14,12 @@ import {
 } from "@turnkey/encoding";
 import { TurnkeyClient } from "@turnkey/http";
 
+const getPublicKeyFromPrivateKeyHex = (privateKey: string): string => {
+  return uint8ArrayToHexString(
+    getPublicKey(uint8ArrayFromHexString(privateKey), true)
+  );
+}
+
 const AuthScreen = () => {
   const [embeddedKey, setEmbeddedKey] = useState<any>(null);
   const [credentialBundle, setCredentialBundle] = useState("");
@@ -59,10 +65,8 @@ const AuthScreen = () => {
       return;
     }
 
-    const publicKey = uint8ArrayToHexString(
-      getPublicKey(uint8ArrayFromHexString(decryptedData), true)
-    );
     const privateKey = decryptedData;
+    const publicKey = getPublicKeyFromPrivateKeyHex(privateKey);
 
     const turnkeyClient = new TurnkeyClient(
       { baseUrl: "https://api.turnkey.com" },
