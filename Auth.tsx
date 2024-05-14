@@ -1,7 +1,7 @@
 import "react-native-get-random-values";
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Button, StyleSheet } from "react-native";
-import { signWithApiKey } from "@turnkey/api-key-stamper";
+import { signWithApiKey, ApiKeyStamper } from "@turnkey/api-key-stamper";
 import {
   generateP256KeyPair,
   decryptBundle,
@@ -12,6 +12,7 @@ import {
   uint8ArrayToHexString,
   uint8ArrayFromHexString,
 } from "@turnkey/encoding";
+import { TurnkeyClient } from "@turnkey/http";
 
 const AuthScreen = () => {
   const [embeddedKey, setEmbeddedKey] = useState<any>(null);
@@ -20,6 +21,8 @@ const AuthScreen = () => {
   const [publicKey, setPublicKey] = useState("");
   const [decryptedData, setDecryptedData] = useState("");
   const [signature, setSignature] = useState("");
+  const [organizationID, setOrganizationID] = useState("");
+  const [userID, setUserID] = useState("");
 
   useEffect(() => {
     handleGenerateKey();
@@ -41,7 +44,7 @@ const AuthScreen = () => {
     try {
       const decryptedData = decryptBundle(
         credentialBundle,
-        embeddedKey,
+        embeddedKey
       ) as Uint8Array;
 
       setDecryptedData(uint8ArrayToHexString(decryptedData));
@@ -50,10 +53,38 @@ const AuthScreen = () => {
     }
   };
 
+  const handleWhoami = async () => {
+    if (!decryptedData) {
+      console.error("unable to get whoami; must have decrypted data");
+      return;
+    }
+
+    const publicKey = uint8ArrayToHexString(
+      getPublicKey(uint8ArrayFromHexString(decryptedData), true)
+    );
+    const privateKey = decryptedData;
+
+    const turnkeyClient = new TurnkeyClient(
+      { baseUrl: "https://api.turnkey.com" },
+      new ApiKeyStamper({
+        apiPublicKey: publicKey,
+        apiPrivateKey: privateKey,
+      })
+    );
+
+    const whoamiResponse = await turnkeyClient.getWhoami({
+      // This value can be the suborg ID, or its parent org ID (which is sufficient to find out "who you are")
+      organizationId: process.env.EXPO_PUBLIC_TURNKEY_ORGANIZATION_ID!, 
+    });
+
+    setOrganizationID(whoamiResponse.organizationId);
+    setUserID(whoamiResponse.userId);
+  };
+
   const handleStampPayload = async () => {
     try {
       const publicKey = uint8ArrayToHexString(
-        getPublicKey(uint8ArrayFromHexString(decryptedData), true),
+        getPublicKey(uint8ArrayFromHexString(decryptedData), true)
       );
       const privateKey = decryptedData;
       const signature = await signWithApiKey({
@@ -83,16 +114,28 @@ const AuthScreen = () => {
         value={credentialBundle}
         placeholder="Enter Credential Bundle"
       />
-      <Button title="Inject Bundle" onPress={handleInjectBundle} />
+      <Button
+        title="Inject Bundle"
+        onPress={handleInjectBundle}
+      />
       <TextInput
         style={styles.input}
         onChangeText={setPayload}
         value={payload}
         placeholder="Enter Payload"
       />
-      <Button title="Stamp Payload" onPress={handleStampPayload} />
+      <Button
+        title="Stamp Payload"
+        onPress={handleStampPayload}
+      />
       <Text>Decrypted Key: {decryptedData}</Text>
       <Text>Signature: {signature}</Text>
+      <Button
+        title="whoami?"
+        onPress={handleWhoami}
+      />
+      <Text>Organization ID: {organizationID}</Text>
+      <Text>User ID: {userID}</Text>
     </View>
   );
 };
