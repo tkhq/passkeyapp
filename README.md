@@ -32,7 +32,7 @@ Then generate a fresh API key with the `turnkey` CLI (`turnkey gen -k new-api-ke
 Once you have org ID, public and private API key:
 
 ```sh
-cp .env.template .env
+cp .env.example .env
 ```
 
 Then insert your values in the new `.env` file
