@@ -90,7 +90,7 @@ Finally, you need to grab your certificate's sha256 fingerprint and associate it
     ],
     "target": {
       "namespace": "android_app",
-      "package_name": "xyz.tkhqlabs.passkeyapp",
+      "package_name": "app.vercel.nekorider",
       "sha256_cert_fingerprints": [
         "55:16:FF:0F:77:8A:DC:5A:B3:33:1F:B3:56:02:8C:C9:C3:02:20:82:CA:13:91:CC:0C:CA:B5:3C:87:56:2B:2B",
         "43:A8:83:EA:B5:9D:C9:03:99:CF:00:5E:17:01:14:0D:7C:22:64:22:9A:34:39:41:FC:F4:3A:FC:E1:24:03:41"
@@ -129,7 +129,7 @@ Note: a more convenient option if you're simply looking to run debug mode for yo
 
 ## `http` folder
 
-In the HTTP folder you'll find a folder with what's hosted at https://passkeyapp.tkhqlabs.xyz. It contains a Cloudflare worker function to give `apple-app-site-association` the right MIME type.
+In the HTTP folder you'll find a folder with what's hosted at https://nekorider.vercel.app. It contains a Cloudflare worker function to give `apple-app-site-association` the right MIME type.
 
 Otherwise it hosts static content:
 
@@ -148,7 +148,7 @@ To run this locally: `npx wrangler pages dev http`.
 Domain=com.apple.AuthenticationServices.AuthorizationError Code=1004 "(null)"
 ```
 
-This happens when the RPID is incorrect. I have no idea why Apple doesn't return a proper error here. The RPID should be the domain name (inverse of the bundle ID). E.g. `passkeyapp.tkhqlabs.xyz`
+This happens when the RPID is incorrect. I have no idea why Apple doesn't return a proper error here. The RPID should be the domain name (inverse of the bundle ID). E.g. `nekorider.vercel.app`
 
 ### This app cannot be installed because its integrity could not be verified
 

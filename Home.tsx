@@ -10,7 +10,7 @@ import { TurnkeyClient } from "@turnkey/http";
 import { Buffer } from "buffer";
 import { useNavigation } from "@react-navigation/native";
 
-const RPID = "passkeyapp.tkhqlabs.xyz";
+const RPID = "nekorider.vercel.app";
 
 export default function Home() {
   const navigation = useNavigation();
@@ -57,7 +57,7 @@ async function onPasskeyCreate() {
     const humanReadableDateTime = `${now.getFullYear()}-${now.getMonth()}-${now.getDay()}@${now.getHours()}h${now.getMinutes()}min`;
     console.log(
       "creating passkey with the following datetime: ",
-      humanReadableDateTime,
+      humanReadableDateTime
     );
 
     // ID isn't visible by users, but needs to be random enough and valid base64 (for Android)
@@ -88,7 +88,7 @@ async function onPasskeyCreate() {
     const response = await createSubOrganization(authenticatorParams);
     console.log("created sub-org", response);
     alert(
-      `Sub-org created! Your ID: ${response.activity.result.createSubOrganizationResultV4?.subOrganizationId}`,
+      `Sub-org created! Your ID: ${response.activity.result.createSubOrganizationResultV4?.subOrganizationId}`
     );
   } catch (e) {
     console.error("error during passkey creation", e);
@@ -102,14 +102,14 @@ async function onPasskeySignature() {
     });
     const client = new TurnkeyClient(
       { baseUrl: "https://api.turnkey.com" },
-      stamper,
+      stamper
     );
     const getWhoamiResult = await client.getWhoami({
       organizationId: process.env.EXPO_PUBLIC_TURNKEY_ORGANIZATION_ID,
     });
     console.log("passkey authentication succeeded: ", getWhoamiResult);
     alert(
-      `Successfully logged into sub-organization ${getWhoamiResult.organizationId}`,
+      `Successfully logged into sub-organization ${getWhoamiResult.organizationId}`
     );
   } catch (e) {
     console.error("error during passkey signature", e);
@@ -117,7 +117,7 @@ async function onPasskeySignature() {
 }
 
 async function createSubOrganization(
-  authenticatorParams: Awaited<ReturnType<typeof createPasskey>>,
+  authenticatorParams: Awaited<ReturnType<typeof createPasskey>>
 ) {
   const stamper = new ApiKeyStamper({
     apiPublicKey: process.env.EXPO_PUBLIC_TURNKEY_API_PUBLIC_KEY,
@@ -125,7 +125,7 @@ async function createSubOrganization(
   });
   const client = new TurnkeyClient(
     { baseUrl: "https://api.turnkey.com" },
-    stamper,
+    stamper
   );
 
   const data = await client.createSubOrganization({
