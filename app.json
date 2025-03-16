@@ -17,9 +17,13 @@
     "ios": {
       "supportsTablet": true,
       "associatedDomains": [
+        "webcredentials:nekorider.vercel.app",
         "webcredentials:nekorider.vercel.app"
       ],
-      "bundleIdentifier": "app.vercel.nekorider"
+      "bundleIdentifier": "app.vercel.nekorider",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
