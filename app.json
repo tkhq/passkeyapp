@@ -11,10 +11,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "associatedDomains": ["webcredentials:nekorider.vercel.app"],
+      "associatedDomains": [
+        "webcredentials:nekorider.vercel.app"
+      ],
       "bundleIdentifier": "app.vercel.nekorider"
     },
     "android": {
@@ -26,6 +30,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "455bb70e-84fb-4b9b-b011-c7862153d9ad"
+      }
     }
   }
 }
